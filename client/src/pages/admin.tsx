@@ -113,13 +113,12 @@ type LitigationStats = {
 function AnalyticsDashboard() {
   const [timePeriod, setTimePeriod] = useState<7 | 30 | 90>(30);
   
-  const { data: analytics, isLoading } = useQuery<AnalyticsData>({
-    queryKey: [`/api/admin/analytics?days=${timePeriod}`],
+  const { data: dashboardData, isLoading } = useQuery<{ analytics: AnalyticsData; litigationStats: LitigationStats }>({
+    queryKey: [`/api/admin/dashboard?days=${timePeriod}`],
   });
 
-  const { data: litigationStats } = useQuery<LitigationStats>({
-    queryKey: ["/api/admin/litigation-stats"],
-  });
+  const analytics = dashboardData?.analytics;
+  const litigationStats = dashboardData?.litigationStats;
 
   if (isLoading) {
     return (

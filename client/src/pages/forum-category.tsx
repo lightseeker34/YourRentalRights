@@ -130,7 +130,7 @@ export default function ForumCategory() {
     enabled: !!id,
   });
 
-  const { data: posts = [] } = useQuery<ForumPost[]>({
+  const { data: postsData } = useQuery<{ posts: ForumPost[]; total: number }>({
     queryKey: ["/api/forum/posts", { categoryId: id }],
     queryFn: async () => {
       const res = await fetch(`/api/forum/posts?categoryId=${id}`);
@@ -138,6 +138,7 @@ export default function ForumCategory() {
     },
     enabled: !!id,
   });
+  const posts = postsData?.posts ?? [];
 
   const { data: allUsers = [] } = useQuery<ForumUser[]>({
     queryKey: ["/api/forum/users"],

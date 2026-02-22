@@ -1,22 +1,23 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Incident, IncidentLog } from "@shared/schema";
+import { Incident, IncidentLog, SEVERITY_LEVELS, SeverityLevel, DEFAULT_SEVERITY_BY_TYPE, getLogSeverity } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download } from "lucide-react";
+import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download, FolderUp, AlertTriangle, Info, Minus, Wrench } from "lucide-react";
 import jsPDF from "jspdf";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { GuidedTour, shouldOpenMobileDrawer } from "@/components/guided-tour";
+import { ChatInput, type ChatInputHandle } from "@/components/chat-input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,11 +43,12 @@ export default function IncidentView() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
-  const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const chatInputRef = useRef<ChatInputHandle>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const generalFileInputRef = useRef<HTMLInputElement>(null);
   const [highlightedLogId, setHighlightedLogId] = useState<number | null>(null);
   
   // Edit incident state
@@ -58,8 +60,10 @@ export default function IncidentView() {
   const [logCallOpen, setLogCallOpen] = useState(false);
   const [logTextOpen, setLogTextOpen] = useState(false);
   const [logEmailOpen, setLogEmailOpen] = useState(false);
+  const [logServiceOpen, setLogServiceOpen] = useState(false);
   const [logTitle, setLogTitle] = useState("");
   const [logNotes, setLogNotes] = useState("");
+  const [logSeverity, setLogSeverity] = useState<SeverityLevel>('routine');
   const [logPhotoFiles, setLogPhotoFiles] = useState<File[]>([]);
   const [logDocFiles, setLogDocFiles] = useState<File[]>([]);
   
@@ -68,8 +72,10 @@ export default function IncidentView() {
   const [editLogContent, setEditLogContent] = useState("");
   const [editLogPhoto, setEditLogPhoto] = useState<IncidentLog | null>(null);
   const [editLogAttachments, setEditLogAttachments] = useState<string[]>([]);
+  const [editLogSeverity, setEditLogSeverity] = useState<SeverityLevel>('routine');
   const [showEditEvidencePicker, setShowEditEvidencePicker] = useState(false);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
+  const editFolderInputRef = useRef<HTMLInputElement>(null);
   
   // Preview state for photos/documents
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -80,6 +86,22 @@ export default function IncidentView() {
   const [isExporting, setIsExporting] = useState(false);
   const [hasExportedPdf, setHasExportedPdf] = useState(false);
   
+  // AI Analysis daily usage tracking (3 per day limit)
+  const getAnalysisUsageKey = () => `analysis_usage_${id}_${new Date().toISOString().slice(0, 10)}`;
+  const getAnalysisUsageCount = () => {
+    try { return parseInt(localStorage.getItem(getAnalysisUsageKey()) || '0', 10); } catch { return 0; }
+  };
+  const incrementAnalysisUsage = () => {
+    const count = getAnalysisUsageCount() + 1;
+    localStorage.setItem(getAnalysisUsageKey(), String(count));
+    setAnalysisUsageCount(count);
+  };
+  const [analysisUsageCount, setAnalysisUsageCount] = useState(() => {
+    try { return parseInt(localStorage.getItem(`analysis_usage_${id}_${new Date().toISOString().slice(0, 10)}`) || '0', 10); } catch { return 0; }
+  });
+  const ANALYSIS_DAILY_LIMIT = 3;
+  const MIN_EVIDENCE_COUNT = 3;
+
   // Litigation Review state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
@@ -121,10 +143,8 @@ export default function IncidentView() {
     return () => clearInterval(interval);
   }, [mobileDrawerOpen, drawerOpenedByTour]);
   
-  // Chat attachment state
-  const [chatAttachments, setChatAttachments] = useState<string[]>([]);
-  const chatPhotoInputRef = useRef<HTMLInputElement>(null);
-  const [showEvidencePicker, setShowEvidencePicker] = useState(false);
+  // Toast dismiss ref for persistent regeneration toast
+  const resendToastRef = useRef<(() => void) | null>(null);
   
   // Log dialog photo refs and evidence picker
   const logPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -174,12 +194,12 @@ export default function IncidentView() {
         
         // Scroll chat panel first
         if (chatElement) {
-          chatElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          chatElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
         // Also scroll timeline if element exists
         if (timelineElement) {
           setTimeout(() => {
-            timelineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            timelineElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
           }, 150);
         }
         
@@ -187,7 +207,8 @@ export default function IncidentView() {
         setTimeout(() => setHighlightedLogId(null), 3000);
       }, 400);
     } else if (!targetLogId && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (viewport) viewport.scrollTop = viewport.scrollHeight;
       scrolledToLogId.current = null;
     }
   }, [logs, targetLogId]);
@@ -196,19 +217,30 @@ export default function IncidentView() {
     // Scroll to bottom when logs change, with small delay to ensure content is rendered
     const timer = setTimeout(() => {
       if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        if (viewport) viewport.scrollTop = viewport.scrollHeight;
       }
     }, 100);
     return () => clearTimeout(timer);
   }, [logs?.length]);
 
+  // Count evidence entries for AI analysis gate
+  const evidenceTypes = ['call', 'text', 'email', 'photo', 'document', 'note', 'call_photo', 'text_photo', 'email_photo', 'service', 'service_photo', 'service_document'];
+  const evidenceCount = useMemo(() => logs?.filter(l => evidenceTypes.includes(l.type)).length || 0, [logs]);
+  const hasEnoughEvidence = evidenceCount >= MIN_EVIDENCE_COUNT;
+  const hasReachedDailyLimit = analysisUsageCount >= ANALYSIS_DAILY_LIMIT;
+  const canRunAnalysis = hasEnoughEvidence && !hasReachedDailyLimit && !isAnalyzing;
+
+  const getAnalysisButtonLabel = () => {
+    if (isAnalyzing) return 'Analyzing...';
+    if (hasReachedDailyLimit) return 'Limit reached';
+    if (!hasEnoughEvidence) return `Need ${MIN_EVIDENCE_COUNT - evidenceCount} more entries`;
+    return 'AI Analysis';
+  };
+
   // Auto-focus chat input when no messages (shows blinking cursor)
   const chatLogsCount = logs?.filter(l => l.type === 'chat').length || 0;
-  useEffect(() => {
-    if (chatLogsCount === 0 && chatInputRef.current) {
-      chatInputRef.current.focus();
-    }
-  }, [chatLogsCount]);
+  const shouldAutoFocus = chatLogsCount === 0;
 
   useEffect(() => {
     if (incident) {
@@ -221,12 +253,10 @@ export default function IncidentView() {
     // Check for pending chat message from dashboard
     const pendingMsg = localStorage.getItem('pending_chat_msg');
     if (pendingMsg) {
-      setInput(pendingMsg);
+      chatInputRef.current?.setInput(pendingMsg);
       localStorage.removeItem('pending_chat_msg');
-      // Scroll to chat input
       setTimeout(() => {
-        const chatInput = document.querySelector('textarea[placeholder*="Ask about"]');
-        if (chatInput) chatInput.scrollIntoView({ behavior: 'smooth' });
+        chatInputRef.current?.focus();
       }, 500);
     }
   }, []);
@@ -243,6 +273,8 @@ export default function IncidentView() {
     onMutate: async ({ message, attachments }) => {
       await queryClient.cancelQueries({ queryKey: [`/api/incidents/${id}/logs`] });
       const previousLogs = queryClient.getQueryData<IncidentLog[]>([`/api/incidents/${id}/logs`]);
+      const savedInput = message;
+      const savedAttachments = [...attachments];
       const optimisticLog: IncidentLog = {
         id: -Date.now(),
         incidentId: parseInt(id!),
@@ -257,85 +289,29 @@ export default function IncidentView() {
       queryClient.setQueryData<IncidentLog[]>([`/api/incidents/${id}/logs`], (old) => 
         old ? [...old, optimisticLog] : [optimisticLog]
       );
-      const savedInput = input;
-      const savedAttachments = [...chatAttachments];
-      setInput("");
-      setChatAttachments([]);
       return { previousLogs, savedInput, savedAttachments };
     },
     onError: (err, variables, context) => {
       if (context?.previousLogs) {
         queryClient.setQueryData([`/api/incidents/${id}/logs`], context.previousLogs);
       }
-      if (context?.savedInput) setInput(context.savedInput);
-      if (context?.savedAttachments) setChatAttachments(context.savedAttachments);
+      if (context?.savedInput) chatInputRef.current?.setInput(context.savedInput);
+      if (context?.savedAttachments) chatInputRef.current?.setAttachments(context.savedAttachments);
       toast({ title: "Error", description: "Failed to send message.", variant: "destructive" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/incidents/${id}/logs`] });
-      // Scroll to bottom after AI response
-      setTimeout(() => {
+      const scrollToBottom = () => {
         if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+          if (viewport) viewport.scrollTop = viewport.scrollHeight;
         }
-      }, 200);
+      };
+      setTimeout(scrollToBottom, 200);
+      setTimeout(scrollToBottom, 500);
+      setTimeout(scrollToBottom, 1000);
     },
   });
-  
-  // Upload photo for chat attachment
-  const uploadChatPhotoMutation = useMutation({
-    mutationFn: async ({ file, tempUrl }: { file: File; tempUrl: string }) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch(`/api/incidents/${id}/upload?category=chat_photo`, {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Upload failed");
-      return await res.json();
-    },
-    onMutate: async ({ tempUrl }) => {
-      const previousAttachments = [...chatAttachments];
-      setChatAttachments(prev => [...prev, tempUrl]);
-      return { previousAttachments, tempUrl };
-    },
-    onError: (err, variables, context) => {
-      if (context?.previousAttachments) {
-        setChatAttachments(context.previousAttachments);
-      }
-      toast({ title: "Upload Failed", description: "Could not upload photo.", variant: "destructive" });
-    },
-    onSuccess: (data, variables, context) => {
-      if (data.fileUrl && context?.tempUrl) {
-        setChatAttachments(prev => prev.map(url => url === context.tempUrl ? data.fileUrl : url));
-      }
-      queryClient.invalidateQueries({ queryKey: [`/api/incidents/${id}/logs`] });
-      toast({ title: "Photo attached", description: "Photo will be sent with your message." });
-    },
-  });
-  
-  const handleChatPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach(file => {
-        const tempUrl = URL.createObjectURL(file);
-        uploadChatPhotoMutation.mutate({ file, tempUrl });
-      });
-    }
-    e.target.value = "";
-  };
-  
-  const addExistingEvidence = (fileUrl: string) => {
-    if (!chatAttachments.includes(fileUrl)) {
-      setChatAttachments(prev => [...prev, fileUrl]);
-    }
-    setShowEvidencePicker(false);
-  };
-  
-  const removeAttachment = (url: string) => {
-    setChatAttachments(prev => prev.filter(u => u !== url));
-  };
 
   // Cascade delete - delete a message and all messages after it
   const cascadeDeleteMutation = useMutation({
@@ -363,11 +339,18 @@ export default function IncidentView() {
       });
       return await res.json();
     },
+    onMutate: () => {
+      const t = toast({ title: "Regenerating", description: "Getting a new response...", duration: Infinity });
+      resendToastRef.current = t.dismiss;
+    },
     onSuccess: () => {
+      resendToastRef.current?.();
+      resendToastRef.current = null;
       queryClient.invalidateQueries({ queryKey: [`/api/incidents/${id}/logs`] });
-      toast({ title: "Regenerating", description: "Getting a new response..." });
     },
     onError: () => {
+      resendToastRef.current?.();
+      resendToastRef.current = null;
       toast({ title: "Error", description: "Failed to regenerate response.", variant: "destructive" });
     },
   });
@@ -472,9 +455,25 @@ export default function IncidentView() {
       const res = await apiRequest("PATCH", `/api/incidents/${id}/status`, { status: newStatus });
       return await res.json();
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: [`/api/incidents/${id}`] });
+      const previous = queryClient.getQueryData([`/api/incidents/${id}`]);
+      queryClient.setQueryData([`/api/incidents/${id}`], (old: any) => {
+        if (!old) return old;
+        return { ...old, status: old.status === 'open' ? 'closed' : 'open' };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData([`/api/incidents/${id}`], context.previous);
+      }
+    },
+    onSettled: () => {
       refetchIncident();
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+    },
+    onSuccess: () => {
       toast({ title: "Status Updated" });
     },
   });
@@ -528,18 +527,18 @@ export default function IncidentView() {
   });
 
   const createLogWithPhotoMutation = useMutation({
-    mutationFn: async ({ type, title, notes, photos, documents }: { type: string; title: string; notes: string; photos: File[]; documents: File[] }) => {
+    mutationFn: async ({ type, title, notes, photos, documents, severity }: { type: string; title: string; notes: string; photos: File[]; documents: File[]; severity?: SeverityLevel }) => {
       const now = new Date();
       const typeLabel = type === 'call' ? 'Call' : type === 'text' ? 'Text' : 'Email';
+      const effectiveSeverity = severity || DEFAULT_SEVERITY_BY_TYPE[type] || 'routine';
       
-      // First create the log entry
       const logRes = await apiRequest("POST", `/api/incidents/${id}/logs`, {
         incidentId: parseInt(id!),
         type,
         title: title || null,
         content: notes || `${typeLabel} logged at ${format(now, "MMM d, yyyy 'at' h:mm a")}`,
         isAi: false,
-        metadata: { loggedAt: now.toISOString(), hasPhoto: photos.length > 0, photoCount: photos.length, hasDocument: documents.length > 0, documentCount: documents.length },
+        metadata: { loggedAt: now.toISOString(), hasPhoto: photos.length > 0, photoCount: photos.length, hasDocument: documents.length > 0, documentCount: documents.length, severity: effectiveSeverity },
       });
       const logData = await logRes.json();
       
@@ -573,11 +572,12 @@ export default function IncidentView() {
       
       return logData;
     },
-    onMutate: async ({ type, title, notes, photos }) => {
+    onMutate: async ({ type, title, notes, photos, severity }) => {
       await queryClient.cancelQueries({ queryKey: [`/api/incidents/${id}/logs`] });
       const previousLogs = queryClient.getQueryData<IncidentLog[]>([`/api/incidents/${id}/logs`]);
       const now = new Date();
       const typeLabel = type === 'call' ? 'Call' : type === 'text' ? 'Text' : 'Email';
+      const effectiveSeverity = severity || DEFAULT_SEVERITY_BY_TYPE[type] || 'routine';
       const optimisticLog: IncidentLog = {
         id: -Date.now(),
         incidentId: parseInt(id!),
@@ -585,7 +585,7 @@ export default function IncidentView() {
         title: title || null,
         content: notes || `${typeLabel} logged at ${format(now, "MMM d, yyyy 'at' h:mm a")}`,
         fileUrl: null,
-        metadata: { loggedAt: now.toISOString(), hasPhoto: photos.length > 0, photoCount: photos.length },
+        metadata: { loggedAt: now.toISOString(), hasPhoto: photos.length > 0, photoCount: photos.length, severity: effectiveSeverity },
         isAi: false,
         createdAt: now,
       };
@@ -594,6 +594,7 @@ export default function IncidentView() {
       );
       setLogTitle("");
       setLogNotes("");
+      setLogSeverity('routine');
       setLogPhotoFiles([]);
       setLogDocFiles([]);
       setLogCallOpen(false);
@@ -615,14 +616,17 @@ export default function IncidentView() {
   });
 
   const updateLogMutation = useMutation({
-    mutationFn: async ({ logId, content }: { logId: number; content: string }) => {
-      const res = await apiRequest("PATCH", `/api/logs/${logId}`, { content });
+    mutationFn: async ({ logId, content, severity }: { logId: number; content: string; severity?: SeverityLevel }) => {
+      const log = logs?.find(l => l.id === logId);
+      const metadata = log ? { ...(log.metadata as any), severity } : { severity };
+      const res = await apiRequest("PATCH", `/api/logs/${logId}`, { content, metadata });
       return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/incidents/${id}/logs`] });
       setEditLogId(null);
       setEditLogContent("");
+      setEditLogSeverity('routine');
       toast({ title: "Updated", description: "Log entry has been updated." });
     },
   });
@@ -648,9 +652,10 @@ export default function IncidentView() {
   };
 
   const triggerLitigationReview = async () => {
-    if (!id) return;
+    if (!id || !canRunAnalysis) return;
     
     setIsAnalyzing(true);
+    incrementAnalysisUsage();
     try {
       const response = await apiRequest("POST", `/api/incidents/${id}/litigation-review`, {
         triggeredBy: 'user'
@@ -688,10 +693,9 @@ export default function IncidentView() {
   };
 
   const handleLogSubmit = (type: string) => {
-    // Split files into photos and documents based on MIME type
     const photos = logPhotoFiles.filter(f => f.type.startsWith('image/'));
     const documents = [...logDocFiles, ...logPhotoFiles.filter(f => !f.type.startsWith('image/'))];
-    createLogWithPhotoMutation.mutate({ type, title: logTitle, notes: logNotes, photos, documents });
+    createLogWithPhotoMutation.mutate({ type, title: logTitle, notes: logNotes, photos, documents, severity: logSeverity });
   };
   
   const handleLogPhotoAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -719,7 +723,7 @@ export default function IncidentView() {
   };
 
   const getAttachedPhotos = (log: IncidentLog): IncidentLog[] => {
-    if (log.type !== 'call' && log.type !== 'text' && log.type !== 'email' && log.type !== 'photo') return [];
+    if (log.type !== 'call' && log.type !== 'text' && log.type !== 'email' && log.type !== 'photo' && log.type !== 'service') return [];
     // Find photos with parentLogId matching this log's ID
     return logs?.filter(l => {
       const parentLogId = (l.metadata as any)?.parentLogId;
@@ -728,7 +732,7 @@ export default function IncidentView() {
   };
 
   const getAttachedDocuments = (log: IncidentLog): IncidentLog[] => {
-    if (log.type !== 'call' && log.type !== 'text' && log.type !== 'email') return [];
+    if (log.type !== 'call' && log.type !== 'text' && log.type !== 'email' && log.type !== 'service') return [];
     // Find documents with parentLogId matching this log's ID
     return logs?.filter(l => {
       const parentLogId = (l.metadata as any)?.parentLogId;
@@ -739,6 +743,7 @@ export default function IncidentView() {
   const openEditLog = (log: IncidentLog) => {
     setEditLogId(log.id);
     setEditLogContent(log.content);
+    setEditLogSeverity(getLogSeverity(log));
     // Load existing attachments (photos and documents) linked via parentLogId
     const attachedPhotos = getAttachedPhotos(log);
     const attachedDocs = getAttachedDocuments(log);
@@ -762,6 +767,205 @@ export default function IncidentView() {
       setPreviewType(isImage ? 'image' : 'document');
       setPreviewName(log.content);
     }
+  };
+
+  const chatLogs = useMemo(() => logs?.filter(l => l.type === 'chat').sort((a, b) => {
+    const timeA = new Date(a.createdAt).getTime();
+    const timeB = new Date(b.createdAt).getTime();
+    if (timeA !== timeB) return timeA - timeB;
+    return a.id - b.id;
+  }) || [], [logs]);
+
+  const getMetaCategory = (log: IncidentLog) => (log.metadata as any)?.category;
+
+  const { allPhotos, allDocuments, photos, documents } = useMemo(() => {
+    const allPhotos = logs?.filter(l => l.type === 'photo') || [];
+    const allDocuments = logs?.filter(l => l.type === 'document') || [];
+    const photos = logs?.filter(l => l.type === 'photo' && !getMetaCategory(l) && !l.title) || [];
+    const documents = logs?.filter(l => l.type === 'document') || [];
+    return { allPhotos, allDocuments, photos, documents };
+  }, [logs]);
+
+  const fileGroups = useMemo(() => {
+    const groups: { id: string; label: string; icon: any; color: string; files: IncidentLog[]; type: string }[] = [];
+    const usedPhotoIds = new Set<number>();
+    const usedDocIds = new Set<number>();
+    
+    const incidentPhotos = allPhotos.filter(p => getMetaCategory(p) === 'incident_photo');
+    incidentPhotos.forEach(p => usedPhotoIds.add(p.id));
+    if (incidentPhotos.length > 0 && incident) {
+      groups.push({
+        id: 'incident',
+        label: incident.title,
+        icon: FolderOpen,
+        color: 'text-slate-700',
+        files: incidentPhotos,
+        type: 'incident'
+      });
+    }
+    
+    const logsWithPotentialAttachments = logs?.filter(l => 
+      l.type === 'call' || l.type === 'text' || l.type === 'email' || l.type === 'service' || (l.type === 'photo' && l.title)
+    ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) || [];
+    
+    logsWithPotentialAttachments.forEach(log => {
+      const attachedPhotos = allPhotos.filter(p => {
+        const parentLogId = (p.metadata as any)?.parentLogId;
+        return p.type === 'photo' && parentLogId === log.id;
+      });
+      const attachedDocs = allDocuments.filter(d => {
+        const parentLogId = (d.metadata as any)?.parentLogId;
+        return parentLogId === log.id;
+      });
+      
+      let icon = FileText;
+      let color = 'text-slate-500';
+      let typeLabel = log.type.charAt(0).toUpperCase() + log.type.slice(1);
+      
+      if (log.type === 'call') { icon = Phone; color = 'text-blue-500'; }
+      else if (log.type === 'text') { icon = MessageSquare; color = 'text-green-500'; }
+      else if (log.type === 'email') { icon = Mail; color = 'text-purple-500'; }
+      else if (log.type === 'service') { icon = Wrench; color = 'text-orange-500'; }
+      else if (log.type === 'photo') { icon = ImageIcon; color = 'text-blue-500'; }
+      else if (log.type === 'note') { icon = FileText; color = 'text-slate-500'; }
+      
+      const label = log.title ? `${typeLabel}: ${log.title}` : `${typeLabel}: ${log.content?.substring(0, 30)}${(log.content?.length || 0) > 30 ? '...' : ''}`;
+      
+      const files: IncidentLog[] = [];
+      if (log.type === 'photo' && log.fileUrl) {
+        files.push(log);
+        usedPhotoIds.add(log.id);
+      }
+      attachedPhotos.forEach(p => {
+        files.push(p);
+        usedPhotoIds.add(p.id);
+      });
+      attachedDocs.forEach(d => {
+        files.push(d);
+        usedDocIds.add(d.id);
+      });
+      
+      if (files.length > 0) {
+        groups.push({
+          id: `log-${log.id}`,
+          label,
+          icon,
+          color,
+          files,
+          type: log.type
+        });
+      }
+    });
+    
+    const chatFiles: IncidentLog[] = [];
+    const chatCategoryPhotos = allPhotos.filter(p => !usedPhotoIds.has(p.id) && getMetaCategory(p) === 'chat_photo');
+    chatCategoryPhotos.forEach(p => { chatFiles.push(p); usedPhotoIds.add(p.id); });
+    const chatCategoryDocs = allDocuments.filter(d => !usedDocIds.has(d.id) && getMetaCategory(d) === 'chat_document');
+    chatCategoryDocs.forEach(d => { chatFiles.push(d); usedDocIds.add(d.id); });
+    if (chatFiles.length > 0) {
+      groups.push({
+        id: 'chat-files',
+        label: 'Chat Files',
+        icon: Bot,
+        color: 'text-slate-600',
+        files: chatFiles.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+        type: 'chat'
+      });
+    }
+
+    const standalonePhotos = allPhotos.filter(p => !usedPhotoIds.has(p.id));
+    if (standalonePhotos.length > 0) {
+      groups.push({
+        id: 'standalone-photos',
+        label: 'Other Photos',
+        icon: ImageIcon,
+        color: 'text-slate-500',
+        files: standalonePhotos,
+        type: 'standalone'
+      });
+    }
+    
+    const standaloneDocuments = allDocuments.filter(d => !usedDocIds.has(d.id));
+    if (standaloneDocuments.length > 0) {
+      groups.push({
+        id: 'documents',
+        label: 'Documents',
+        icon: Paperclip,
+        color: 'text-slate-500',
+        files: standaloneDocuments,
+        type: 'document'
+      });
+    }
+    
+    return groups;
+  }, [logs, incident]);
+
+  const toggleFileGroup = (groupId: string) => {
+    setExpandedFileGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  const allTimelineLogs = useMemo(() => logs?.filter(l => 
+    l.type === 'note' || 
+    l.type === 'call' || 
+    l.type === 'text' || 
+    l.type === 'email' ||
+    l.type === 'service' ||
+    l.type === 'chat' ||
+    (l.type === 'photo' && (getMetaCategory(l) || l.title))
+  ).sort((a, b) => {
+    const timeA = new Date(a.createdAt).getTime();
+    const timeB = new Date(b.createdAt).getTime();
+    return timeA - timeB;
+  }) || [], [logs]);
+
+  type TimelineItem = { type: 'single'; log: IncidentLog } | { type: 'chat_group'; id: string; chats: IncidentLog[] };
+  
+  const timelineItems = useMemo((): TimelineItem[] => {
+    const items: TimelineItem[] = [];
+    let currentChatGroup: IncidentLog[] = [];
+    let chatGroupIndex = 0;
+    
+    for (const log of allTimelineLogs) {
+      const category = getMetaCategory(log);
+      if (log.type === 'photo' && category) continue;
+      
+      if (log.type === 'chat') {
+        currentChatGroup.push(log);
+      } else {
+        if (currentChatGroup.length > 0) {
+          items.push({ type: 'chat_group', id: `chat-group-${chatGroupIndex}`, chats: currentChatGroup });
+          chatGroupIndex++;
+          currentChatGroup = [];
+        }
+        items.push({ type: 'single', log });
+      }
+    }
+    
+    if (currentChatGroup.length > 0) {
+      items.push({ type: 'chat_group', id: `chat-group-${chatGroupIndex}`, chats: currentChatGroup });
+    }
+    
+    return items;
+  }, [allTimelineLogs]);
+
+  const toggleChatGroup = (groupId: string) => {
+    setExpandedChatGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
   };
 
   // Skeleton loading state
@@ -804,194 +1008,6 @@ export default function IncidentView() {
     );
   }
 
-  const chatLogs = logs?.filter(l => l.type === 'chat').sort((a, b) => {
-    const timeA = new Date(a.createdAt).getTime();
-    const timeB = new Date(b.createdAt).getTime();
-    if (timeA !== timeB) return timeA - timeB;
-    return a.id - b.id; // Use ID as tie-breaker for deterministic ordering
-  }) || [];
-
-  const getMetaCategory = (log: IncidentLog) => (log.metadata as any)?.category;
-  const allPhotos = logs?.filter(l => l.type === 'photo') || [];
-  const allDocuments = logs?.filter(l => l.type === 'document') || [];
-  const photos = logs?.filter(l => l.type === 'photo' && !getMetaCategory(l) && !l.title) || [];
-  const documents = logs?.filter(l => l.type === 'document') || [];
-  
-  // Build file groups for the Files section using parentLogId association
-  const buildFileGroups = () => {
-    const groups: { id: string; label: string; icon: any; color: string; files: IncidentLog[]; type: string }[] = [];
-    const usedPhotoIds = new Set<number>();
-    const usedDocIds = new Set<number>();
-    
-    // Group 1: Incident photos
-    const incidentPhotos = allPhotos.filter(p => getMetaCategory(p) === 'incident_photo');
-    incidentPhotos.forEach(p => usedPhotoIds.add(p.id));
-    if (incidentPhotos.length > 0 && incident) {
-      groups.push({
-        id: 'incident',
-        label: incident.title,
-        icon: FolderOpen,
-        color: 'text-slate-700',
-        files: incidentPhotos,
-        type: 'incident'
-      });
-    }
-    
-    // Group 2+: Each log entry with its attached photos (using parentLogId)
-    const logsWithPotentialAttachments = logs?.filter(l => 
-      l.type === 'call' || l.type === 'text' || l.type === 'email' || (l.type === 'photo' && l.title)
-    ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) || [];
-    
-    logsWithPotentialAttachments.forEach(log => {
-      // Use parentLogId to find photos and documents attached to this specific log
-      const attachedPhotos = allPhotos.filter(p => {
-        const parentLogId = (p.metadata as any)?.parentLogId;
-        return p.type === 'photo' && parentLogId === log.id;
-      });
-      const attachedDocs = allDocuments.filter(d => {
-        const parentLogId = (d.metadata as any)?.parentLogId;
-        return parentLogId === log.id;
-      });
-      
-      let icon = FileText;
-      let color = 'text-slate-500';
-      let typeLabel = log.type.charAt(0).toUpperCase() + log.type.slice(1);
-      
-      if (log.type === 'call') { icon = Phone; color = 'text-blue-500'; }
-      else if (log.type === 'text') { icon = MessageSquare; color = 'text-green-500'; }
-      else if (log.type === 'email') { icon = Mail; color = 'text-purple-500'; }
-      else if (log.type === 'photo') { icon = ImageIcon; color = 'text-blue-500'; }
-      else if (log.type === 'note') { icon = FileText; color = 'text-slate-500'; }
-      
-      const label = log.title ? `${typeLabel}: ${log.title}` : `${typeLabel}: ${log.content?.substring(0, 30)}${(log.content?.length || 0) > 30 ? '...' : ''}`;
-      
-      // Include the log itself if it's a photo entry with title
-      const files: IncidentLog[] = [];
-      if (log.type === 'photo' && log.fileUrl) {
-        files.push(log);
-        usedPhotoIds.add(log.id);
-      }
-      attachedPhotos.forEach(p => {
-        files.push(p);
-        usedPhotoIds.add(p.id);
-      });
-      attachedDocs.forEach(d => {
-        files.push(d);
-        usedDocIds.add(d.id);
-      });
-      
-      if (files.length > 0) {
-        groups.push({
-          id: `log-${log.id}`,
-          label,
-          icon,
-          color,
-          files,
-          type: log.type
-        });
-      }
-    });
-    
-    // Standalone photos (not used by any group above)
-    const standalonePhotos = allPhotos.filter(p => !usedPhotoIds.has(p.id));
-    if (standalonePhotos.length > 0) {
-      groups.push({
-        id: 'standalone-photos',
-        label: 'Uncategorized Photos',
-        icon: ImageIcon,
-        color: 'text-slate-500',
-        files: standalonePhotos,
-        type: 'standalone'
-      });
-    }
-    
-    // Standalone documents (not attached to any log)
-    const standaloneDocuments = allDocuments.filter(d => !usedDocIds.has(d.id));
-    if (standaloneDocuments.length > 0) {
-      groups.push({
-        id: 'documents',
-        label: 'Documents',
-        icon: Paperclip,
-        color: 'text-slate-500',
-        files: standaloneDocuments,
-        type: 'document'
-      });
-    }
-    
-    return groups;
-  };
-  
-  const fileGroups = buildFileGroups();
-  const toggleFileGroup = (groupId: string) => {
-    setExpandedFileGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      return next;
-    });
-  };
-  const allTimelineLogs = logs?.filter(l => 
-    l.type === 'note' || 
-    l.type === 'call' || 
-    l.type === 'text' || 
-    l.type === 'email' ||
-    l.type === 'chat' ||
-    (l.type === 'photo' && (getMetaCategory(l) || l.title)) // Include photo attachments and photo entries with title
-  ).sort((a, b) => {
-    const timeA = new Date(a.createdAt).getTime();
-    const timeB = new Date(b.createdAt).getTime();
-    return timeA - timeB;
-  }) || [];
-
-  // Group consecutive chat messages, logs break the groups
-  type TimelineItem = { type: 'single'; log: IncidentLog } | { type: 'chat_group'; id: string; chats: IncidentLog[] };
-  
-  const groupedTimelineItems = (): TimelineItem[] => {
-    const items: TimelineItem[] = [];
-    let currentChatGroup: IncidentLog[] = [];
-    let chatGroupIndex = 0;
-    
-    for (const log of allTimelineLogs) {
-      const category = getMetaCategory(log);
-      // Skip photos with categories (they're rendered with their parent)
-      if (log.type === 'photo' && category) continue;
-      
-      if (log.type === 'chat') {
-        currentChatGroup.push(log);
-      } else {
-        // Non-chat log breaks the group
-        if (currentChatGroup.length > 0) {
-          items.push({ type: 'chat_group', id: `chat-group-${chatGroupIndex}`, chats: currentChatGroup });
-          chatGroupIndex++;
-          currentChatGroup = [];
-        }
-        items.push({ type: 'single', log });
-      }
-    }
-    
-    // Don't forget the last chat group
-    if (currentChatGroup.length > 0) {
-      items.push({ type: 'chat_group', id: `chat-group-${chatGroupIndex}`, chats: currentChatGroup });
-    }
-    
-    return items;
-  };
-  
-  const toggleChatGroup = (groupId: string) => {
-    setExpandedChatGroups(prev => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      return next;
-    });
-  };
-
   const formatDateTime = (date: Date | string) => {
     return format(new Date(date), "MMM d, yyyy  h:mm a");
   };
@@ -1025,7 +1041,7 @@ export default function IncidentView() {
           if (log.type === 'chat') {
             const element = document.getElementById(`chat-entry-${log.id}`);
             if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              element.scrollIntoView({ behavior: 'smooth', block: 'end' });
               setHighlightedLogId(log.id);
               setTimeout(() => setHighlightedLogId(null), 3000);
             }
@@ -1059,22 +1075,28 @@ export default function IncidentView() {
             {log.content}
           </ReactMarkdown>
         </div>
-        {/* Footer: date and actions */}
+        {/* Footer: date, severity badge, and actions */}
         <div className="flex items-center justify-between mt-1">
-          <div className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</span>
+            {(() => {
+              const sev = getLogSeverity(log);
+              if (sev === 'critical') return <span className="inline-flex items-center gap-0.5 px-1.5 py-0 rounded text-[10px] font-semibold bg-red-100 text-red-700 border border-red-200" data-testid={`badge-severity-${log.id}`}><AlertTriangle className="w-2.5 h-2.5" />Critical</span>;
+              if (sev === 'important') return <span className="inline-flex items-center gap-0.5 px-1.5 py-0 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200" data-testid={`badge-severity-${log.id}`}><Info className="w-2.5 h-2.5" />Important</span>;
+              return null;
+            })()}
+          </div>
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            {(log.type === 'call' || log.type === 'text' || log.type === 'email') && (
+            {(log.type === 'call' || log.type === 'text' || log.type === 'email' || log.type === 'service') && (
               <Button 
                 variant="ghost" 
                 size="icon" 
                 className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700"
                 onClick={() => {
                   const typeLabel = log.type === 'call' ? 'Call log' : log.type === 'text' ? 'Text log' : 'Email log';
-                  setInput(`Add this to our discussion: [${typeLabel}] ${log.content}`);
-                  // Scroll to chat input after a short delay
+                  chatInputRef.current?.setInput(`Add this to our discussion: [${typeLabel}] ${log.content}`);
                   setTimeout(() => {
-                    const chatInput = document.querySelector('textarea[placeholder*="Ask about"]');
-                    if (chatInput) chatInput.scrollIntoView({ behavior: 'smooth' });
+                    chatInputRef.current?.focus();
                   }, 100);
                 }}
                 title="Add to AI Chat"
@@ -1110,6 +1132,97 @@ export default function IncidentView() {
           </div>
         </div>
       </Card>
+    );
+  };
+
+  const ThumbnailWithDelete = ({ children, onDelete, onPreview, className = "" }: { 
+    children: React.ReactNode; 
+    onDelete: () => void; 
+    onPreview: () => void;
+    className?: string;
+  }) => {
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+    const longPressTriggered = useRef(false);
+    const [showDelete, setShowDelete] = useState(false);
+
+    useEffect(() => {
+      if (!showDelete) return;
+      const dismiss = (e: MouseEvent | TouchEvent) => {
+        if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+          setShowDelete(false);
+        }
+      };
+      document.addEventListener('mousedown', dismiss);
+      document.addEventListener('touchstart', dismiss);
+      return () => {
+        document.removeEventListener('mousedown', dismiss);
+        document.removeEventListener('touchstart', dismiss);
+      };
+    }, [showDelete]);
+    
+    const handleTouchStart = () => {
+      longPressTriggered.current = false;
+      longPressTimer.current = setTimeout(() => {
+        longPressTriggered.current = true;
+        setShowDelete(true);
+      }, 500);
+    };
+    
+    const handleTouchEnd = () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+    };
+    
+    const handleClick = () => {
+      if (longPressTriggered.current) {
+        longPressTriggered.current = false;
+        return;
+      }
+      if (showDelete) {
+        setShowDelete(false);
+        return;
+      }
+      onPreview();
+    };
+    
+    return (
+      <div 
+        ref={wrapperRef}
+        className={`relative group ${className}`}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchEnd}
+        onClick={handleClick}
+      >
+        {children}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 hidden md:block"
+          title="Delete"
+        >
+          <Trash2 className="w-2.5 h-2.5" />
+        </button>
+        {showDelete && (
+          <div className="absolute inset-0 bg-transparent flex items-center justify-center z-10 rounded md:hidden">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+                setShowDelete(false);
+              }}
+              className="bg-white text-red-600 rounded-full p-1.5 shadow-lg"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -1483,7 +1596,7 @@ export default function IncidentView() {
       
       // Get chronological entries (calls, texts, emails, photos)
       const chronologicalLogs = logs.filter(l => 
-        l.type === 'call' || l.type === 'text' || l.type === 'email' || l.type === 'photo'
+        l.type === 'call' || l.type === 'text' || l.type === 'email' || l.type === 'photo' || l.type === 'service'
       ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       
       // Section: Evidence Timeline
@@ -1686,46 +1799,45 @@ export default function IncidentView() {
   const SidebarContent = () => (
     <>
       <div className="border border-slate-300 rounded-lg p-4 pt-[16px] pb-[16px] mt-[13px] mb-[13px]">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex justify-end mb-2">
           <button
             onClick={() => toggleStatusMutation.mutate()}
             disabled={toggleStatusMutation.isPending}
-            className={`px-3 py-1 rounded text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors ${
+            className={`px-3 py-1 rounded text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors pl-[10px] pr-[10px] pt-[4px] pb-[4px] ${
               incident.status === 'open'
                 ? 'bg-green-100 text-green-700 hover:bg-green-200'
                 : 'bg-red-100 text-red-700 hover:bg-red-200'
             }`}
             data-testid="status-toggle-mobile"
           >
+            <Clock className="w-3 h-3" />
             {incident.status === 'open' ? 'Open' : 'Closed'}
           </button>
-          
-          <div className="flex flex-col gap-1">
-            <Button 
-              variant="ghost"
-              size="sm"
-              onClick={exportToPDF}
-              disabled={isExporting}
-              className="text-slate-600 hover:text-green-700 h-7 px-2 text-xs border border-slate-300 bg-[#4d5e700f]"
-              data-testid="button-export-pdf"
-            >
-              <Download className={`w-3.5 h-3.5 mr-1 ${isExporting ? 'animate-pulse' : ''}`} />
-              {isExporting ? 'Exporting...' : 'Export PDF'}
-            </Button>
-            {hasExportedPdf && (
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={triggerLitigationReview}
-                disabled={isAnalyzing}
-                className="text-slate-600 hover:text-blue-700 h-7 px-2 text-xs border border-slate-300 bg-[#4d5e700f]"
-                data-testid="button-ai-analysis"
-              >
-                <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
-                {isAnalyzing ? 'Analyzing...' : 'AI Analysis'}
-              </Button>
-            )}
-          </div>
+        </div>
+        <div className="flex items-center gap-1 mb-3">
+          <Button 
+            variant="ghost"
+            size="sm"
+            onClick={exportToPDF}
+            disabled={isExporting}
+            className="text-slate-600 hover:text-green-700 h-7 px-2 text-xs border border-slate-300 bg-[#4d5e700f]"
+            data-testid="button-export-pdf"
+          >
+            <Download className={`w-3.5 h-3.5 mr-1 ${isExporting ? 'animate-pulse' : ''}`} />
+            {isExporting ? 'Exporting...' : 'Export PDF'}
+          </Button>
+          <Button 
+            variant="ghost"
+            size="sm"
+            onClick={triggerLitigationReview}
+            disabled={!canRunAnalysis}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 min-h-8 rounded-md h-7 px-2 text-xs border border-slate-300 text-slate-600 hover:text-blue-700 bg-[#4d5e700f] pt-[0px] pb-[0px] mt-[5px] mb-[5px] pl-[8px] pr-[8px] ml-[5px] mr-[5px]"
+            title={!hasEnoughEvidence ? `Add at least ${MIN_EVIDENCE_COUNT} evidence entries to unlock` : hasReachedDailyLimit ? 'Daily limit reached — try again tomorrow' : 'Run AI case analysis'}
+            data-testid="button-ai-analysis"
+          >
+            <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
+            {getAnalysisButtonLabel()}
+          </Button>
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2">{incident.title}</h2>
         <p className="text-sm text-slate-600 mb-2">{incident.description}</p>
@@ -1741,10 +1853,9 @@ export default function IncidentView() {
               size="icon" 
               className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
               onClick={() => {
-                setMobileDrawerOpen(false);
-                setDrawerOpenedByTour(false);
                 setEditIncidentOpen(true);
               }}
+              data-testid="button-edit-incident-mobile"
             >
               <Pencil className="w-3.5 h-3.5" />
             </Button>
@@ -1775,33 +1886,8 @@ export default function IncidentView() {
         </div>
       </div>
 
-      {/* Upload buttons directly below case details */}
-      <div className="space-y-2 mt-4">
-        <Button 
-          variant="outline" 
-          className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300" 
-          onClick={() => { photoInputRef.current?.click(); }}
-          disabled={uploadFileMutation.isPending}
-          data-testid="button-upload-photo-mobile"
-        >
-          <ImageIcon className="w-4 h-4 text-blue-500" />
-          <span>Upload Photo</span>
-        </Button>
-        <Button 
-          variant="outline" 
-          className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
-          onClick={() => { docInputRef.current?.click(); }}
-          disabled={uploadFileMutation.isPending}
-          data-testid="button-upload-document-mobile"
-        >
-          <Paperclip className="w-4 h-4 text-slate-500" />
-          <span>Upload Document</span>
-        </Button>
-      </div>
-
       {/* Add Log section */}
-      <div className="space-y-2 mt-4">
-        <h3 className="text-sm font-bold uppercase tracking-wider ml-[5px] mr-[5px] mb-2 bg-[#00000000] text-[#6f777d]">Add Log</h3>
+      <div className="space-y-2 mt-4" data-testid="log-buttons-mobile">
         <Button 
           variant="outline" 
           className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
@@ -1826,11 +1912,19 @@ export default function IncidentView() {
           <Mail className="w-4 h-4 text-purple-400" />
           <span>Log Email</span>
         </Button>
+        <Button 
+          variant="outline" 
+          className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
+          onClick={() => { setLogServiceOpen(true); }}
+        >
+          <Wrench className="w-4 h-4 text-orange-500" />
+          <span>Log Service Request</span>
+        </Button>
       </div>
 
       <div className="space-y-6 mt-6">
         <div>
-          <h3 className="text-sm font-bold mb-3 uppercase tracking-wider text-[#6f777d]">Timeline</h3>
+          <h3 className="font-bold uppercase tracking-wider text-left pl-[20px] pr-[20px] text-[16px] mt-[10px] mb-[10px] text-[#0f172a]">Timeline</h3>
           <div className="space-y-2">
             {/* Master Bubble - shows the incident itself */}
             {incident && (
@@ -1843,8 +1937,8 @@ export default function IncidentView() {
                         <Clock className="w-2.5 h-2.5" /> Open
                       </span>
                     ) : (
-                      <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-xs font-bold uppercase flex items-center gap-0.5 shrink-0">
-                        Closed
+                      <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold uppercase flex items-center gap-0.5 shrink-0">
+                        <Clock className="w-2.5 h-2.5" /> Closed
                       </span>
                     )}
                   </div>
@@ -1860,7 +1954,7 @@ export default function IncidentView() {
             {(() => {
               const incidentPhotos = logs?.filter(l => l.type === 'photo' && (l.metadata as any)?.category === 'incident_photo') || [];
               // Get only incident-level documents (category is incident_document or not associated with any log type)
-              const logDocCategories = ['call_document', 'text_document', 'email_document'];
+              const logDocCategories = ['call_document', 'text_document', 'email_document', 'service_document'];
               const incidentDocs = logs?.filter(l => {
                 if (l.type !== 'document') return false;
                 const cat = (l.metadata as any)?.category;
@@ -1872,40 +1966,35 @@ export default function IncidentView() {
               return (
                 <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-1">
                   {incidentPhotos.map((photo) => (
-                    <Card 
-                      key={photo.id}
-                      className="w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200 rounded-md"
-                      onClick={() => openPreview(photo)}
-                    >
-                      <img 
-                        src={photo.fileUrl!} 
-                        loading="lazy"
-                        alt={photo.content}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <ImageIcon className="w-3 h-3 text-white" />
-                      </div>
-                    </Card>
+                    <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
+                      <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
+                        <img 
+                          src={photo.fileUrl!} 
+                          loading="lazy"
+                          alt={photo.content}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <ImageIcon className="w-3 h-3 text-white" />
+                        </div>
+                      </Card>
+                    </ThumbnailWithDelete>
                   ))}
                   {incidentDocs.map((doc) => (
-                    <Card 
-                      key={doc.id}
-                      className="w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md"
-                      onClick={() => openPreview(doc)}
-                      title={doc.content}
-                    >
-                      <Paperclip className="w-4 h-4 text-slate-500" />
-                    </Card>
+                    <ThumbnailWithDelete key={doc.id} onDelete={() => deleteMutation.mutate(doc.id)} onPreview={() => openPreview(doc)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
+                      <Card className="w-full h-full relative group overflow-hidden border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md">
+                        <Paperclip className="w-4 h-4 text-slate-500" />
+                      </Card>
+                    </ThumbnailWithDelete>
                   ))}
                 </div>
               );
             })()}
             
             {/* Sub-entries with connecting line - using grouped timeline items */}
-            {groupedTimelineItems().length > 0 && (
+            {timelineItems.length > 0 && (
               <div className="ml-4 border-l-2 border-slate-200 pl-3 space-y-2">
-                {groupedTimelineItems().map((item) => {
+                {timelineItems.map((item) => {
                   if (item.type === 'chat_group') {
                     const isExpanded = expandedChatGroups.has(item.id);
                     const firstChat = item.chats[0];
@@ -2014,31 +2103,26 @@ export default function IncidentView() {
                       {hasAttachments && (
                         <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-1">
                           {attachedPhotos.map((photo) => (
-                            <Card 
-                              key={photo.id}
-                              className="w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200 rounded-md"
-                              onClick={() => openPreview(photo)}
-                            >
-                              <img 
-                                src={photo.fileUrl!} 
-                                loading="lazy"
-                                alt={photo.content}
-                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center mt-[2px] mb-[2px]">
-                                <ImageIcon className="w-3 h-3 text-white" />
-                              </div>
-                            </Card>
+                            <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
+                              <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
+                                <img 
+                                  src={photo.fileUrl!} 
+                                  loading="lazy"
+                                  alt={photo.content}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <ImageIcon className="w-3 h-3 text-white" />
+                                </div>
+                              </Card>
+                            </ThumbnailWithDelete>
                           ))}
                           {attachedDocs.map((doc) => (
-                            <Card 
-                              key={doc.id}
-                              className="border text-card-foreground shadow w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md pt-[0px] pb-[0px] mt-[2px] mb-[2px]"
-                              onClick={() => openPreview(doc)}
-                              title={doc.content}
-                            >
-                              <Paperclip className="w-4 h-4 text-slate-500" />
-                            </Card>
+                            <ThumbnailWithDelete key={doc.id} onDelete={() => deleteMutation.mutate(doc.id)} onPreview={() => openPreview(doc)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
+                              <Card className="w-full h-full relative group overflow-hidden border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md">
+                                <Paperclip className="w-4 h-4 text-slate-500" />
+                              </Card>
+                            </ThumbnailWithDelete>
                           ))}
                         </div>
                       )}
@@ -2053,7 +2137,7 @@ export default function IncidentView() {
         {/* Files Section */}
         {fileGroups.length > 0 && (
           <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider">Files</h3>
+            <h3 className="text-sm font-bold mb-3 uppercase tracking-wider pl-[20px] pr-[20px] text-[#0f172a]">Files</h3>
             <div className="space-y-1">
               {fileGroups.map((group) => {
                 const isExpanded = expandedFileGroups.has(group.id);
@@ -2075,33 +2159,28 @@ export default function IncidentView() {
                     </button>
                     {isExpanded && (
                       <div className="border-t border-slate-100 p-2 bg-slate-50">
-                        <div className="grid grid-cols-4 gap-1">
+                        <div className="grid grid-cols-4 gap-1.5">
                           {group.files.map((file) => (
                             file.type === 'photo' ? (
-                              <Card 
-                                key={file.id} 
-                                className="w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200 rounded-md"
-                                onClick={() => openPreview(file)}
-                              >
-                                <img 
-                                  src={file.fileUrl!} 
-                                  loading="lazy"
-                                  alt={file.content}
-                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <ImageIcon className="w-3 h-3 text-white" />
-                                </div>
-                              </Card>
+                              <ThumbnailWithDelete key={file.id} onDelete={() => deleteMutation.mutate(file.id)} onPreview={() => openPreview(file)} className="aspect-square overflow-hidden cursor-pointer rounded-md">
+                                <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
+                                  <img 
+                                    src={file.fileUrl!} 
+                                    loading="lazy"
+                                    alt={file.content}
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <ImageIcon className="w-3 h-3 text-white" />
+                                  </div>
+                                </Card>
+                              </ThumbnailWithDelete>
                             ) : (
-                              <Card 
-                                key={file.id} 
-                                className="p-1 flex items-center justify-center cursor-pointer hover:bg-slate-50 border-slate-200 w-10 h-10 rounded-md"
-                                onClick={() => openPreview(file)}
-                                title={file.content}
-                              >
-                                <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
-                              </Card>
+                              <ThumbnailWithDelete key={file.id} onDelete={() => deleteMutation.mutate(file.id)} onPreview={() => openPreview(file)} className="aspect-square overflow-hidden cursor-pointer rounded-md">
+                                <Card className="w-full h-full flex items-center justify-center hover:bg-slate-50 border-slate-200 rounded-md">
+                                  <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
+                                </Card>
+                              </ThumbnailWithDelete>
                             )
                           ))}
                         </div>
@@ -2139,22 +2218,127 @@ export default function IncidentView() {
         accept=".pdf,.doc,.docx,.txt"
         className="hidden"
       />
+      <input
+        type="file"
+        ref={folderInputRef}
+        onChange={(e) => {
+          const files = e.target.files;
+          if (!files) return;
+          Array.from(files).forEach(file => {
+            if (file.type.startsWith('image/')) {
+              handlePhotoUpload({ target: { files: [file] } } as any);
+            } else {
+              handleDocUpload({ target: { files: [file] } } as any);
+            }
+          });
+          e.target.value = '';
+        }}
+        className="hidden"
+        {...({ webkitdirectory: "", directory: "" } as any)}
+      />
+      <input
+        type="file"
+        ref={generalFileInputRef}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          if (file.type.startsWith('image/')) {
+            handlePhotoUpload(e);
+          } else {
+            handleDocUpload(e);
+          }
+          e.target.value = '';
+        }}
+        accept="image/*,.pdf,.doc,.docx,.txt"
+        className="hidden"
+      />
       {/* Edit Incident Dialog - rendered at root level to avoid mobile drawer conflicts */}
       <Dialog open={editIncidentOpen} onOpenChange={setEditIncidentOpen}>
-        <DialogContent className="w-[90%] rounded-xl" hideCloseButton>
-          <div className="space-y-4">
+        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+          <div className="space-y-4 pt-[8px] pb-[8px]">
             <Input 
               placeholder="Title"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              className="placeholder:text-slate-400"
+              className="mt-[6px] mb-[6px] placeholder:text-slate-400"
             />
             <Textarea 
               placeholder="Description"
               value={editDescription}
               onChange={(e) => setEditDescription(e.target.value)}
-              className="placeholder:text-slate-400"
+              className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
             />
+            {(() => {
+              const editPhotos = logs?.filter(l => l.type === 'photo' && (l.metadata as any)?.category === 'incident_photo' && l.fileUrl) || [];
+              const logDocCategories = ['call_document', 'text_document', 'email_document', 'service_document'];
+              const editDocs = logs?.filter(l => {
+                if (l.type !== 'document' || !l.fileUrl) return false;
+                const cat = (l.metadata as any)?.category;
+                return cat === 'incident_document' || !logDocCategories.includes(cat);
+              }) || [];
+              const editFiles = [...editPhotos, ...editDocs];
+              if (editFiles.length === 0) return null;
+              return (
+                <div>
+                  <div className="text-xs font-medium text-slate-500 mb-2">Attached Files</div>
+                  <div className="flex flex-wrap gap-2">
+                    {editPhotos.map((photo) => (
+                      <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-14 h-14 overflow-hidden cursor-pointer rounded-lg">
+                        <div
+                          className="w-full h-full relative group overflow-hidden rounded-lg border border-slate-200"
+                          data-testid={`edit-dialog-photo-${photo.id}`}
+                        >
+                          <img 
+                            src={photo.fileUrl!} 
+                            loading="lazy"
+                            alt={photo.content}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <ImageIcon className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        </div>
+                      </ThumbnailWithDelete>
+                    ))}
+                    {editDocs.map((doc) => (
+                      <ThumbnailWithDelete key={doc.id} onDelete={() => deleteMutation.mutate(doc.id)} onPreview={() => openPreview(doc)} className="w-14 h-14 overflow-hidden cursor-pointer rounded-lg">
+                        <div
+                          className="w-full h-full flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
+                          title={doc.content}
+                          data-testid={`edit-dialog-doc-${doc.id}`}
+                        >
+                          <Paperclip className="w-4 h-4 text-slate-500" />
+                        </div>
+                      </ThumbnailWithDelete>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+            <div className="flex flex-col gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => generalFileInputRef.current?.click()}
+                className="w-full justify-start"
+                disabled={uploadFileMutation.isPending}
+                data-testid="button-edit-incident-upload-file"
+              >
+                <Paperclip className="w-4 h-4 mr-2" />
+                Upload File
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => folderInputRef.current?.click()}
+                className="w-full justify-start"
+                disabled={uploadFileMutation.isPending}
+                data-testid="button-edit-incident-upload-folder"
+              >
+                <FolderUp className="w-4 h-4 mr-2" />
+                Upload Folder
+              </Button>
+            </div>
             <Button 
               onClick={() => updateIncidentMutation.mutate()} 
               className="w-full"
@@ -2186,15 +2370,15 @@ export default function IncidentView() {
       </div>
       {/* Mobile edge indicator - swipe hint */}
       <div 
-        className="fixed left-0 top-1/2 -translate-y-1/2 z-30 md:hidden bg-slate-700 px-1 py-4 rounded-r-lg shadow-md flex items-center cursor-pointer"
+        className="fixed left-0 top-1/2 -translate-y-1/2 z-30 md:hidden bg-white border border-slate-300 px-1 py-4 rounded-r-lg shadow-md flex items-center cursor-pointer"
         onClick={() => { setMobileDrawerOpen(true); setDrawerOpenedByTour(false); }}
       >
-        <span className="text-white text-xs font-medium" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>Open</span>
+        <span className="text-black text-xs font-medium" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>Open</span>
       </div>
       {/* Desktop Sidebar / Case Info */}
       <div className="w-96 border-r border-slate-200 bg-white p-6 hidden md:block overflow-y-auto pl-[20px] pr-[20px]">
         <div className="mb-6 border border-slate-300 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex justify-end mb-2">
             <button
               onClick={() => toggleStatusMutation.mutate()}
               disabled={toggleStatusMutation.isPending}
@@ -2205,35 +2389,34 @@ export default function IncidentView() {
               }`}
               data-testid="status-toggle"
             >
+              <Clock className="w-3 h-3" />
               {incident.status === 'open' ? 'Open' : 'Closed'}
             </button>
-            
-            <div className="flex flex-col gap-1">
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={exportToPDF}
-                disabled={isExporting}
-                className="text-slate-600 hover:text-green-700 h-7 px-2 text-xs border border-slate-300 bg-[#4d5e700f]"
-                data-testid="button-export-pdf-desktop"
-              >
-                <Download className={`w-3.5 h-3.5 mr-1 ${isExporting ? 'animate-pulse' : ''}`} />
-                {isExporting ? 'Exporting...' : 'Export PDF'}
-              </Button>
-              {hasExportedPdf && (
-                <Button 
-                  variant="ghost"
-                  size="sm"
-                  onClick={triggerLitigationReview}
-                  disabled={isAnalyzing}
-                  className="text-slate-600 hover:text-blue-700 h-7 px-2 text-xs border border-slate-300 bg-[#4d5e700f]"
-                  data-testid="button-ai-analysis-desktop"
-                >
-                  <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
-                  {isAnalyzing ? 'Analyzing...' : 'AI Analysis'}
-                </Button>
-              )}
-            </div>
+          </div>
+          <div className="flex items-center gap-1 mb-3">
+            <Button 
+              variant="ghost"
+              size="sm"
+              onClick={exportToPDF}
+              disabled={isExporting}
+              className="text-slate-600 hover:text-green-700 h-7 px-2 text-xs border border-slate-300 bg-[#4d5e700f]"
+              data-testid="button-export-pdf-desktop"
+            >
+              <Download className={`w-3.5 h-3.5 mr-1 ${isExporting ? 'animate-pulse' : ''}`} />
+              {isExporting ? 'Exporting...' : 'Export PDF'}
+            </Button>
+            <Button 
+              variant="ghost"
+              size="sm"
+              onClick={triggerLitigationReview}
+              disabled={!canRunAnalysis}
+              className={`h-7 px-2 text-xs border border-slate-300 ${canRunAnalysis ? 'text-slate-600 hover:text-blue-700 bg-[#4d5e700f]' : 'text-slate-400 bg-slate-100 opacity-60 cursor-not-allowed'}`}
+              title={!hasEnoughEvidence ? `Add at least ${MIN_EVIDENCE_COUNT} evidence entries to unlock` : hasReachedDailyLimit ? 'Daily limit reached — try again tomorrow' : 'Run AI case analysis'}
+              data-testid="button-ai-analysis-desktop"
+            >
+              <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
+              {getAnalysisButtonLabel()}
+            </Button>
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">{incident.title}</h2>
           <p className="text-sm text-slate-600 mb-2">{incident.description}</p>
@@ -2244,36 +2427,15 @@ export default function IncidentView() {
             </div>
             <div className="flex items-center gap-1">
               {/* Edit Button */}
-              <Dialog open={editIncidentOpen} onOpenChange={setEditIncidentOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-50">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="w-[90%] rounded-xl" hideCloseButton>
-                  <div className="space-y-4">
-                    <Input 
-                      placeholder="Title"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="placeholder:text-slate-400"
-                    />
-                    <Textarea 
-                      placeholder="Description"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      className="placeholder:text-slate-400"
-                    />
-                    <Button 
-                      onClick={() => updateIncidentMutation.mutate()} 
-                      className="w-full"
-                      disabled={updateIncidentMutation.isPending}
-                    >
-                      Save Changes
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                onClick={() => setEditIncidentOpen(true)}
+                data-testid="button-edit-incident"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
               
               {/* Delete Button */}
               <AlertDialog>
@@ -2301,32 +2463,8 @@ export default function IncidentView() {
           </div>
         </div>
 
-        {/* Upload buttons directly below case details */}
-        <div className="space-y-2 mt-4">
-          <Button 
-            variant="outline" 
-            className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300" 
-            onClick={() => photoInputRef.current?.click()}
-            disabled={uploadFileMutation.isPending}
-            data-testid="button-upload-photo"
-          >
-            <ImageIcon className="w-4 h-4 text-blue-500" />
-            <span>Upload Photo</span>
-          </Button>
-          <Button 
-            variant="outline" 
-            className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
-            onClick={() => docInputRef.current?.click()}
-            disabled={uploadFileMutation.isPending}
-            data-testid="button-upload-document"
-          >
-            <Paperclip className="w-4 h-4 text-slate-500" />
-            <span>Upload Document</span>
-          </Button>
-        </div>
-
         {/* Add Log section */}
-        <div className="space-y-2 mt-4">
+        <div className="space-y-2 mt-4" data-testid="log-buttons">
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Add Log</h3>
           <Button 
             variant="outline" 
@@ -2352,6 +2490,14 @@ export default function IncidentView() {
             <Mail className="w-4 h-4 text-purple-400" />
             <span>Log Email</span>
           </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
+            onClick={() => setLogServiceOpen(true)}
+          >
+            <Wrench className="w-4 h-4 text-orange-500" />
+            <span>Log Service Request</span>
+          </Button>
         </div>
 
         <div className="space-y-6 mt-6">
@@ -2369,8 +2515,8 @@ export default function IncidentView() {
                           <Clock className="w-2.5 h-2.5" /> Open
                         </span>
                       ) : (
-                        <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-xs font-bold uppercase flex items-center gap-0.5 shrink-0">
-                          Closed
+                        <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-bold uppercase flex items-center gap-0.5 shrink-0">
+                          <Clock className="w-2.5 h-2.5" /> Closed
                         </span>
                       )}
                     </div>
@@ -2385,7 +2531,7 @@ export default function IncidentView() {
               {/* Sub-entries with connecting line - includes incident photos and all logs */}
               {((() => {
                 const incidentPhotos = logs?.filter(l => l.type === 'photo' && (l.metadata as any)?.category === 'incident_photo') || [];
-                return incidentPhotos.length > 0 || allTimelineLogs.length > 0;
+                return incidentPhotos.length > 0 || timelineItems.length > 0;
               })()) && (
                 <div className="ml-4 border-l-2 border-slate-200 pl-3 space-y-2">
                   {/* Incident photos first - wrapped in nested container to match email attachment width */}
@@ -2395,46 +2541,99 @@ export default function IncidentView() {
                     return (
                       <div className="ml-4 border-l-2 border-slate-200 pl-3 space-y-1">
                         {incidentPhotos.map((photo) => (
-                          <Card 
-                            key={photo.id}
-                            className="p-2 cursor-pointer hover:bg-slate-50 group relative"
-                            onClick={() => openPreview(photo)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <img 
-                                src={photo.fileUrl!} 
-                                loading="lazy"
-                                alt={photo.content}
-                                className="w-6 h-6 object-cover rounded border border-slate-200"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs text-slate-500 truncate font-semibold">{photo.content}</div>
-                                <div className="text-xs text-slate-400">{formatDateTime(photo.createdAt)}</div>
+                          <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)}>
+                            <Card className="p-2 cursor-pointer hover:bg-slate-50 group relative">
+                              <div className="flex items-center gap-2">
+                                <img 
+                                  src={photo.fileUrl!} 
+                                  loading="lazy"
+                                  alt={photo.content}
+                                  className="w-6 h-6 object-cover rounded border border-slate-200"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs text-slate-500 truncate font-semibold">{photo.content}</div>
+                                  <div className="text-xs text-slate-400">{formatDateTime(photo.createdAt)}</div>
+                                </div>
                               </div>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteMutation.mutate(photo.id);
-                              }}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Delete photo"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </Card>
+                            </Card>
+                          </ThumbnailWithDelete>
                         ))}
                       </div>
                     );
                   })()}
-                  {/* Timeline logs */}
-                  {allTimelineLogs.map((log) => {
-                    // Skip photo entries that are attachments - they are rendered with their parent
-                    const category = getMetaCategory(log);
-                    if (log.type === 'photo' && category) {
-                      return null;
+                  {/* Timeline logs - grouped by chat */}
+                  {timelineItems.map((item) => {
+                    if (item.type === 'chat_group') {
+                      const isExpanded = expandedChatGroups.has(item.id);
+                      const firstChat = item.chats[0];
+                      const chatCount = item.chats.length;
+                      
+                      return (
+                        <div key={item.id}>
+                          {!isExpanded && (
+                            <Card 
+                              className="p-2 cursor-pointer hover:bg-slate-50 bg-slate-50 border-slate-200"
+                              onClick={() => toggleChatGroup(item.id)}
+                            >
+                              <div className="flex items-center justify-between gap-1.5 mb-1">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <MessageSquare className="w-3 h-3 text-slate-900" />
+                                  <span className="font-medium text-slate-800 text-xs">Chat</span>
+                                  <span className="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-xs">
+                                    {chatCount} messages
+                                  </span>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                              </div>
+                              <div className="text-slate-600 text-xs line-clamp-2 font-normal prose prose-slate max-w-none prose-p:my-0 bg-[var(--color-user-bubble)] border border-[var(--color-user-bubble-border)] p-2 rounded-lg mt-1">
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    p: ({children}) => <span className="inline">{children}</span>,
+                                    strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                                    em: ({children}) => <em className="italic">{children}</em>,
+                                    h1: ({children}) => <span className="font-bold">{children}</span>,
+                                    h2: ({children}) => <span className="font-bold">{children}</span>,
+                                    h3: ({children}) => <span className="font-bold">{children}</span>,
+                                  }}
+                                >
+                                  {firstChat.content}
+                                </ReactMarkdown>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-1">
+                                {formatDateTime(firstChat.createdAt)}
+                              </div>
+                            </Card>
+                          )}
+                          
+                          {isExpanded && (
+                            <div className="space-y-2">
+                              <button 
+                                onClick={() => toggleChatGroup(item.id)}
+                                className="flex items-center justify-between w-full text-xs text-slate-500 hover:text-slate-700"
+                              >
+                                <div className="flex items-center gap-1">
+                                  <MessageSquare className="w-3 h-3" />
+                                  <span>Chat ({chatCount} messages)</span>
+                                </div>
+                                <ChevronDown className="w-4 h-4" />
+                              </button>
+                              {item.chats.map((log) => (
+                                <div key={log.id} id={`log-entry-${log.id}`} className={`transition-all duration-500 ${highlightedLogId === log.id ? 'ring-1 ring-blue-500 rounded-md bg-blue-50/20' : ''}`}>
+                                  <LogEntryCard 
+                                    log={log}
+                                    icon={MessageSquare}
+                                    color="text-slate-900"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
                     }
                     
+                    const log = item.log;
                     let icon = FileText;
                     let color = "text-slate-500";
                     
@@ -2447,15 +2646,14 @@ export default function IncidentView() {
                     } else if (log.type === 'email') {
                       icon = Mail;
                       color = "text-purple-500";
-                    } else if (log.type === 'chat') {
-                      icon = MessageSquare;
-                      color = "text-slate-900";
                     } else if (log.type === 'photo') {
                       icon = ImageIcon;
                       color = "text-blue-500";
+                    } else if (log.type === 'note') {
+                      icon = FileText;
+                      color = "text-slate-500";
                     }
 
-                    // Find attached photos and documents for call/text/email/photo entries
                     const attachedPhotos = getAttachedPhotos(log);
                     const attachedDocs = getAttachedDocuments(log);
                     const hasAttachments = attachedPhotos.length > 0 || attachedDocs.length > 0;
@@ -2467,15 +2665,11 @@ export default function IncidentView() {
                           icon={icon}
                           color={color}
                         />
-                        {/* Attached photos and documents shown below with connecting line */}
                         {hasAttachments && (
                           <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-1">
                             {attachedPhotos.map((photo) => (
-                              <Card 
-                                key={photo.id}
-                                className="w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200"
-                                onClick={() => openPreview(photo)}
-                              >
+                            <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
+                              <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
                                 <img 
                                   src={photo.fileUrl!} 
                                   loading="lazy"
@@ -2485,37 +2679,15 @@ export default function IncidentView() {
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <ImageIcon className="w-3 h-3 text-white" />
                                 </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteMutation.mutate(photo.id);
-                                  }}
-                                  className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
-                                  title="Delete photo"
-                                >
-                                  <Trash2 className="w-2.5 h-2.5" />
-                                </button>
                               </Card>
+                            </ThumbnailWithDelete>
                             ))}
                             {attachedDocs.map((doc) => (
-                              <Card 
-                                key={doc.id}
-                                className="w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100"
-                                onClick={() => openPreview(doc)}
-                                title={doc.content}
-                              >
+                            <ThumbnailWithDelete key={doc.id} onDelete={() => deleteMutation.mutate(doc.id)} onPreview={() => openPreview(doc)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
+                              <Card className="w-full h-full relative group overflow-hidden border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md">
                                 <Paperclip className="w-4 h-4 text-slate-500" />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteMutation.mutate(doc.id);
-                                  }}
-                                  className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10"
-                                  title="Delete document"
-                                >
-                                  <Trash2 className="w-2.5 h-2.5" />
-                                </button>
                               </Card>
+                            </ThumbnailWithDelete>
                             ))}
                           </div>
                         )}
@@ -2552,35 +2724,28 @@ export default function IncidentView() {
                       </button>
                       {isExpanded && (
                         <div className="border-t border-slate-100 p-2 bg-slate-50">
-                          <div className="grid grid-cols-4 gap-1">
+                          <div className="grid grid-cols-4 gap-1.5">
                             {group.files.map((file) => (
                               file.type === 'photo' ? (
-                                <Card 
-                                  key={file.id} 
-                                  className="w-10 h-10 relative group overflow-hidden cursor-pointer border-slate-200"
-                                  onClick={() => openPreview(file)}
-                                  data-testid={`img-file-${file.id}`}
-                                >
-                                  <img 
-                                    src={file.fileUrl!} 
-                                    loading="lazy"
-                                    alt={file.content}
-                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                  />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <ImageIcon className="w-3 h-3 text-white" />
-                                  </div>
-                                </Card>
+                                <ThumbnailWithDelete key={file.id} onDelete={() => deleteMutation.mutate(file.id)} onPreview={() => openPreview(file)} className="aspect-square overflow-hidden cursor-pointer rounded-md">
+                                  <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md" data-testid={`img-file-${file.id}`}>
+                                    <img 
+                                      src={file.fileUrl!} 
+                                      loading="lazy"
+                                      alt={file.content}
+                                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <ImageIcon className="w-3 h-3 text-white" />
+                                    </div>
+                                  </Card>
+                                </ThumbnailWithDelete>
                               ) : (
-                                <Card 
-                                  key={file.id} 
-                                  className="p-1 flex items-center justify-center cursor-pointer hover:bg-slate-50 border-slate-200 w-10 h-10"
-                                  onClick={() => openPreview(file)}
-                                  title={file.content}
-                                  data-testid={`doc-file-${file.id}`}
-                                >
-                                  <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
-                                </Card>
+                                <ThumbnailWithDelete key={file.id} onDelete={() => deleteMutation.mutate(file.id)} onPreview={() => openPreview(file)} className="aspect-square overflow-hidden cursor-pointer rounded-md">
+                                  <Card className="w-full h-full flex items-center justify-center hover:bg-slate-50 border-slate-200 rounded-md" data-testid={`doc-file-${file.id}`}>
+                                    <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
+                                  </Card>
+                                </ThumbnailWithDelete>
                               )
                             ))}
                           </div>
@@ -2596,11 +2761,12 @@ export default function IncidentView() {
       </div>
       {/* Edit Log Dialog */}
       <Dialog open={editLogId !== null && !chatLogs.some(l => l.id === editLogId)} onOpenChange={(open) => { if (!open) { setEditLogId(null); setEditLogPhoto(null); setEditLogAttachments([]); setShowEditEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl" hideCloseButton>
+        <DialogContent className="w-[90%] rounded-xl py-[45px]">
           <div className="space-y-4">
             <Textarea 
               value={editLogContent}
               onChange={(e) => setEditLogContent(e.target.value)}
+              className="min-h-[140px]"
             />
             <div className="space-y-2">
               {/* Show existing attachments inline with remove buttons */}
@@ -2662,7 +2828,7 @@ export default function IncidentView() {
               
               {/* Evidence picker for modal */}
               {showEditEvidencePicker && (() => {
-                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'];
+                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo', 'service_photo'];
                 const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
                 return (
                   <div className="p-2 bg-slate-50 rounded border border-slate-200 max-h-32 overflow-y-auto">
@@ -2706,6 +2872,15 @@ export default function IncidentView() {
                   multiple
                   className="hidden"
                 />
+                <input 
+                  type="file" 
+                  ref={editFolderInputRef} 
+                  onChange={handleEditPhotoUpload}
+                  accept="image/*,.pdf,.doc,.docx,.txt" 
+                  multiple
+                  className="hidden"
+                  {...({ webkitdirectory: "", directory: "" } as any)}
+                />
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -2719,6 +2894,16 @@ export default function IncidentView() {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => editFolderInputRef.current?.click()}
+                  className="w-full justify-start"
+                  data-testid="button-modal-upload-folder"
+                >
+                  <FolderUp className="w-4 h-4 mr-2" />
+                  Upload Folder
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => setShowEditEvidencePicker(!showEditEvidencePicker)}
                   className="w-full justify-start"
                   data-testid="button-modal-pick-evidence"
@@ -2728,8 +2913,29 @@ export default function IncidentView() {
                 </Button>
               </div>
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">Severity</Label>
+              <div className="flex gap-1">
+                {SEVERITY_LEVELS.map(level => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setEditLogSeverity(level)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition-colors ${editLogSeverity === level 
+                      ? level === 'critical' ? 'bg-red-100 border-red-300 text-red-700' 
+                        : level === 'important' ? 'bg-amber-100 border-amber-300 text-amber-700' 
+                        : 'bg-slate-100 border-slate-300 text-slate-600'
+                      : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                    data-testid={`severity-edit-${level}`}
+                  >
+                    {level === 'critical' ? <AlertTriangle className="w-3 h-3" /> : level === 'important' ? <Info className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Button 
-              onClick={() => editLogId && updateLogMutation.mutate({ logId: editLogId, content: editLogContent })} 
+              onClick={() => editLogId && updateLogMutation.mutate({ logId: editLogId, content: editLogContent, severity: editLogSeverity })} 
               className="w-full"
               disabled={updateLogMutation.isPending}
             >
@@ -2739,9 +2945,9 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Log Call Dialog */}
-      <Dialog open={logCallOpen} onOpenChange={(open) => { setLogCallOpen(open); if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setShowLogEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] focus-within:translate-y-[-70%] transition-transform duration-200" hideCloseButton>
-          <div className="space-y-4">
+      <Dialog open={logCallOpen} onOpenChange={(open) => { setLogCallOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['call']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
+        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+          <div className="space-y-4 pt-[8px] pb-[8px]">
             <div className="space-y-2">
               <Input 
                 placeholder="Call Title"
@@ -2755,7 +2961,7 @@ export default function IncidentView() {
                 placeholder="Call notes"
                 value={logNotes}
                 onChange={(e) => setLogNotes(e.target.value)}
-                className="mt-[5px] mb-[5px] placeholder:text-slate-400"
+                className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
               />
             </div>
             <div className="space-y-2">
@@ -2791,6 +2997,15 @@ export default function IncidentView() {
                   onChange={handleLogPhotoAdd}
                   className="hidden"
                 />
+                <input 
+                  type="file" 
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  multiple
+                  onChange={handleLogPhotoAdd}
+                  className="hidden"
+                  id="log-call-folder-input"
+                  {...({ webkitdirectory: "", directory: "" } as any)}
+                />
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -2804,6 +3019,16 @@ export default function IncidentView() {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => document.getElementById('log-call-folder-input')?.click()}
+                  className="w-full justify-start"
+                  data-testid="button-log-call-upload-folder"
+                >
+                  <FolderUp className="w-4 h-4 mr-2" />
+                  Upload Folder
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => setShowLogEvidencePicker(!showLogEvidencePicker)}
                   className="w-full justify-start"
                   data-testid="button-log-call-pick-evidence"
@@ -2813,7 +3038,7 @@ export default function IncidentView() {
                 </Button>
               </div>
               {showLogEvidencePicker && (() => {
-                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'];
+                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo', 'service_photo'];
                 const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
                 return (
                   <div className="p-2 bg-slate-50 rounded border border-slate-200 max-h-32 overflow-y-auto">
@@ -2848,6 +3073,27 @@ export default function IncidentView() {
                 );
               })()}
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">Severity</Label>
+              <div className="flex gap-1">
+                {SEVERITY_LEVELS.map(level => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setLogSeverity(level)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition-colors ${logSeverity === level 
+                      ? level === 'critical' ? 'bg-red-100 border-red-300 text-red-700' 
+                        : level === 'important' ? 'bg-amber-100 border-amber-300 text-amber-700' 
+                        : 'bg-slate-100 border-slate-300 text-slate-600'
+                      : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                    data-testid={`severity-call-${level}`}
+                  >
+                    {level === 'critical' ? <AlertTriangle className="w-3 h-3" /> : level === 'important' ? <Info className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Button 
               onClick={() => handleLogSubmit('call')} 
               className="w-full"
@@ -2859,9 +3105,9 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Log Text Dialog */}
-      <Dialog open={logTextOpen} onOpenChange={(open) => { setLogTextOpen(open); if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setShowLogEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] focus-within:translate-y-[-70%] transition-transform duration-200" hideCloseButton>
-          <div className="space-y-4">
+      <Dialog open={logTextOpen} onOpenChange={(open) => { setLogTextOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['text']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
+        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+          <div className="space-y-4 pt-[8px] pb-[8px]">
             <div className="space-y-2">
               <Input 
                 placeholder="Text Title"
@@ -2875,7 +3121,7 @@ export default function IncidentView() {
                 placeholder="Text message"
                 value={logNotes}
                 onChange={(e) => setLogNotes(e.target.value)}
-                className="mt-[5px] mb-[5px] placeholder:text-slate-400"
+                className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
               />
             </div>
             <div className="space-y-2">
@@ -2911,6 +3157,15 @@ export default function IncidentView() {
                   onChange={handleLogPhotoAdd}
                   className="hidden"
                 />
+                <input 
+                  type="file" 
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  multiple
+                  onChange={handleLogPhotoAdd}
+                  className="hidden"
+                  id="log-text-folder-input"
+                  {...({ webkitdirectory: "", directory: "" } as any)}
+                />
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -2924,6 +3179,16 @@ export default function IncidentView() {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => document.getElementById('log-text-folder-input')?.click()}
+                  className="w-full justify-start"
+                  data-testid="button-log-text-upload-folder"
+                >
+                  <FolderUp className="w-4 h-4 mr-2" />
+                  Upload Folder
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => setShowLogEvidencePicker(!showLogEvidencePicker)}
                   className="w-full justify-start"
                   data-testid="button-log-text-pick-evidence"
@@ -2933,7 +3198,7 @@ export default function IncidentView() {
                 </Button>
               </div>
               {showLogEvidencePicker && (() => {
-                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'];
+                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo', 'service_photo'];
                 const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
                 return (
                   <div className="p-2 bg-slate-50 rounded border border-slate-200 max-h-32 overflow-y-auto">
@@ -2968,6 +3233,27 @@ export default function IncidentView() {
                 );
               })()}
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">Severity</Label>
+              <div className="flex gap-1">
+                {SEVERITY_LEVELS.map(level => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setLogSeverity(level)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition-colors ${logSeverity === level 
+                      ? level === 'critical' ? 'bg-red-100 border-red-300 text-red-700' 
+                        : level === 'important' ? 'bg-amber-100 border-amber-300 text-amber-700' 
+                        : 'bg-slate-100 border-slate-300 text-slate-600'
+                      : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                    data-testid={`severity-text-${level}`}
+                  >
+                    {level === 'critical' ? <AlertTriangle className="w-3 h-3" /> : level === 'important' ? <Info className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Button 
               onClick={() => handleLogSubmit('text')} 
               className="w-full"
@@ -2979,9 +3265,9 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Log Email Dialog */}
-      <Dialog open={logEmailOpen} onOpenChange={(open) => { setLogEmailOpen(open); if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setShowLogEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] focus-within:translate-y-[-70%] transition-transform duration-200" hideCloseButton>
-          <div className="space-y-4">
+      <Dialog open={logEmailOpen} onOpenChange={(open) => { setLogEmailOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['email']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
+        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+          <div className="space-y-4 pt-[8px] pb-[8px]">
             <div className="space-y-2">
               <Input 
                 placeholder="Email Title"
@@ -2995,7 +3281,7 @@ export default function IncidentView() {
                 placeholder="Email summary"
                 value={logNotes}
                 onChange={(e) => setLogNotes(e.target.value)}
-                className="mt-[5px] mb-[5px] placeholder:text-slate-400"
+                className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
               />
             </div>
             <div className="space-y-2">
@@ -3031,6 +3317,15 @@ export default function IncidentView() {
                   onChange={handleLogPhotoAdd}
                   className="hidden"
                 />
+                <input 
+                  type="file" 
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  multiple
+                  onChange={handleLogPhotoAdd}
+                  className="hidden"
+                  id="log-email-folder-input"
+                  {...({ webkitdirectory: "", directory: "" } as any)}
+                />
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -3044,6 +3339,16 @@ export default function IncidentView() {
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => document.getElementById('log-email-folder-input')?.click()}
+                  className="w-full justify-start"
+                  data-testid="button-log-email-upload-folder"
+                >
+                  <FolderUp className="w-4 h-4 mr-2" />
+                  Upload Folder
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => setShowLogEvidencePicker(!showLogEvidencePicker)}
                   className="w-full justify-start"
                   data-testid="button-log-email-pick-evidence"
@@ -3053,7 +3358,7 @@ export default function IncidentView() {
                 </Button>
               </div>
               {showLogEvidencePicker && (() => {
-                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'];
+                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo', 'service_photo'];
                 const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
                 return (
                   <div className="p-2 bg-slate-50 rounded border border-slate-200 max-h-32 overflow-y-auto">
@@ -3088,12 +3393,193 @@ export default function IncidentView() {
                 );
               })()}
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">Severity</Label>
+              <div className="flex gap-1">
+                {SEVERITY_LEVELS.map(level => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setLogSeverity(level)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition-colors ${logSeverity === level 
+                      ? level === 'critical' ? 'bg-red-100 border-red-300 text-red-700' 
+                        : level === 'important' ? 'bg-amber-100 border-amber-300 text-amber-700' 
+                        : 'bg-slate-100 border-slate-300 text-slate-600'
+                      : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                    data-testid={`severity-email-${level}`}
+                  >
+                    {level === 'critical' ? <AlertTriangle className="w-3 h-3" /> : level === 'important' ? <Info className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Button 
               onClick={() => handleLogSubmit('email')} 
               className="w-full"
               disabled={createLogWithPhotoMutation.isPending}
             >
               Save Email Log
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Log Service Request Dialog */}
+      <Dialog open={logServiceOpen} onOpenChange={(open) => { setLogServiceOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['service']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
+        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+          <div className="space-y-4 pt-[8px] pb-[8px]">
+            <div className="space-y-2">
+              <Input 
+                placeholder="Service Request Title"
+                value={logTitle}
+                onChange={(e) => setLogTitle(e.target.value)}
+                className="mt-[6px] mb-[6px] placeholder:text-slate-400"
+              />
+            </div>
+            <div className="space-y-2">
+              <Textarea 
+                placeholder="Service request details"
+                value={logNotes}
+                onChange={(e) => setLogNotes(e.target.value)}
+                className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
+              />
+            </div>
+            <div className="space-y-2">
+              {logPhotoFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {logPhotoFiles.map((file, idx) => (
+                    <div key={idx} className="relative group">
+                      {file.type.startsWith('image/') ? (
+                        <img src={URL.createObjectURL(file)} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" />
+                      ) : (
+                        <div className="w-12 h-12 flex items-center justify-center rounded border border-slate-200 bg-slate-50">
+                          <Paperclip className="w-4 h-4 text-slate-500" />
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeLogPhoto(idx)}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                        data-testid={`remove-log-service-file-${idx}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                <input 
+                  type="file" 
+                  ref={logPhotoInputRef}
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  multiple
+                  onChange={handleLogPhotoAdd}
+                  className="hidden"
+                />
+                <input 
+                  type="file" 
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                  multiple
+                  onChange={handleLogPhotoAdd}
+                  className="hidden"
+                  id="log-service-folder-input"
+                  {...({ webkitdirectory: "", directory: "" } as any)}
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => logPhotoInputRef.current?.click()}
+                  className="w-full justify-start"
+                  data-testid="button-log-service-upload-file"
+                >
+                  <Paperclip className="w-4 h-4 mr-2" />
+                  Upload File
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => document.getElementById('log-service-folder-input')?.click()}
+                  className="w-full justify-start"
+                  data-testid="button-log-service-upload-folder"
+                >
+                  <FolderUp className="w-4 h-4 mr-2" />
+                  Upload Folder
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowLogEvidencePicker(!showLogEvidencePicker)}
+                  className="w-full justify-start"
+                  data-testid="button-log-service-pick-evidence"
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  From Evidence
+                </Button>
+              </div>
+              {showLogEvidencePicker && (() => {
+                const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo', 'service_photo'];
+                const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
+                return (
+                  <div className="p-2 bg-slate-50 rounded border border-slate-200 max-h-32 overflow-y-auto">
+                    <div className="text-xs text-slate-500 mb-1">Select from evidence:</div>
+                    <div className="flex gap-1 flex-wrap">
+                      {photoLogs.map(l => (
+                        <button 
+                          key={l.id} 
+                          onClick={async () => {
+                            const response = await fetch(l.fileUrl!);
+                            const blob = await response.blob();
+                            const file = new File([blob], `evidence-${l.id}.jpg`, { type: blob.type });
+                            setLogPhotoFiles(prev => [...prev, file]);
+                            setShowLogEvidencePicker(false);
+                          }}
+                          className="relative"
+                          data-testid={`log-service-evidence-picker-${l.id}`}
+                        >
+                          <img 
+                            src={l.fileUrl!} 
+                            loading="lazy"
+                            alt="Evidence" 
+                            className="w-10 h-10 object-cover rounded border border-slate-300 hover:border-blue-500 transition-colors"
+                          />
+                        </button>
+                      ))}
+                      {photoLogs.length === 0 && (
+                        <div className="text-xs text-slate-400">No photos in evidence</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-slate-500">Severity</Label>
+              <div className="flex gap-1">
+                {SEVERITY_LEVELS.map(level => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setLogSeverity(level)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border transition-colors ${logSeverity === level 
+                      ? level === 'critical' ? 'bg-red-100 border-red-300 text-red-700' 
+                        : level === 'important' ? 'bg-amber-100 border-amber-300 text-amber-700' 
+                        : 'bg-slate-100 border-slate-300 text-slate-600'
+                      : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                    data-testid={`severity-service-${level}`}
+                  >
+                    {level === 'critical' ? <AlertTriangle className="w-3 h-3" /> : level === 'important' ? <Info className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button 
+              onClick={() => handleLogSubmit('service')} 
+              className="w-full"
+              disabled={createLogWithPhotoMutation.isPending}
+            >
+              Save Service Request
             </Button>
           </div>
         </DialogContent>
@@ -3266,7 +3752,7 @@ export default function IncidentView() {
                     <span className="block text-7xl font-light text-slate-300 leading-[0.8] text-center tracking-tighter mt-[9px] mb-[9px]">Assistant</span>
                   </div>
                   <div className="mt-6 w-full max-w-[340px]">
-                    <div className="bg-white/70 border border-slate-200/50 rounded-2xl px-6 py-4 shadow-[0_4px_15px_rgb(0,0,0,0.02)]">
+                    <div className="bg-white/70 border border-slate-200/50 rounded-2xl px-6 py-4 shadow-[0_4px_15px_rgb(0,0,0,0.02)] pt-[1px] pb-[1px]">
                       <span className="text-slate-400 font-light text-[18px] text-center block leading-relaxed">Ask a question about your case to get started.</span>
                     </div>
                   </div>
@@ -3283,7 +3769,7 @@ export default function IncidentView() {
                         <Textarea
                           value={editLogContent}
                           onChange={(e) => setEditLogContent(e.target.value)}
-                          className="min-h-[80px] text-sm mt-[10px] mb-[10px]"
+                          className="min-h-[140px] text-sm mt-[10px] mb-[10px]"
                           data-testid={`edit-chat-textarea-${log.id}`}
                         />
                         
@@ -3314,7 +3800,7 @@ export default function IncidentView() {
                           
                           {/* Evidence picker for edit */}
                           {showEditEvidencePicker && (() => {
-                            const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'];
+                            const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo', 'service_photo'];
                             const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
                             return (
                               <div className="p-2 bg-slate-50 rounded border border-slate-200 max-h-32 overflow-y-auto">
@@ -3354,9 +3840,18 @@ export default function IncidentView() {
                               type="file" 
                               ref={editPhotoInputRef} 
                               onChange={handleEditPhotoUpload}
-                              accept="image/*" 
+                              accept="image/*,.pdf,.doc,.docx,.txt" 
                               multiple
                               className="hidden"
+                            />
+                            <input 
+                              type="file" 
+                              accept="image/*,.pdf,.doc,.docx,.txt"
+                              multiple
+                              onChange={handleEditPhotoUpload}
+                              className="hidden"
+                              id="edit-chat-folder-input-desktop"
+                              {...({ webkitdirectory: "", directory: "" } as any)}
                             />
                             <Button 
                               variant="outline" 
@@ -3367,6 +3862,16 @@ export default function IncidentView() {
                             >
                               <Paperclip className="w-4 h-4 mr-1" />
                               Upload File
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => document.getElementById('edit-chat-folder-input-desktop')?.click()}
+                              className="text-xs w-full justify-start"
+                              data-testid="button-edit-upload-folder"
+                            >
+                              <FolderUp className="w-4 h-4 mr-1" />
+                              Upload Folder
                             </Button>
                             <Button 
                               variant="outline" 
@@ -3410,11 +3915,18 @@ export default function IncidentView() {
                         />
                         {/* Centered modal */}
                         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                          <div className="w-[90%] max-w-md bg-white border border-slate-200 rounded-xl shadow-lg p-4 flex flex-col gap-2">
+                          <div className="w-[90%] max-w-md bg-white border border-slate-200 rounded-xl shadow-lg pt-12 pb-4 px-4 flex flex-col gap-2 relative">
+                            <button
+                              onClick={() => { setEditLogId(null); setEditLogContent(""); setEditLogAttachments([]); setShowEditEvidencePicker(false); }}
+                              className="absolute top-4 right-4 p-1 rounded-full hover:bg-slate-100 transition-colors"
+                              data-testid="close-edit-chat-mobile"
+                            >
+                              <X className="w-4 h-4 text-slate-500" />
+                            </button>
                             <Textarea
                               value={editLogContent}
                               onChange={(e) => setEditLogContent(e.target.value)}
-                              className="min-h-[80px] text-sm placeholder:text-slate-400"
+                              className="min-h-[140px] text-sm placeholder:text-slate-400"
                               placeholder="Edit message..."
                             />
                             
@@ -3442,6 +3954,15 @@ export default function IncidentView() {
                             
                             {/* Attachment buttons */}
                             <div className="flex flex-col gap-2">
+                              <input 
+                                type="file" 
+                                accept="image/*,.pdf,.doc,.docx,.txt"
+                                multiple
+                                onChange={handleEditPhotoUpload}
+                                className="hidden"
+                                id="edit-chat-folder-input-mobile"
+                                {...({ webkitdirectory: "", directory: "" } as any)}
+                              />
                               <Button 
                                 variant="outline" 
                                 size="sm"
@@ -3450,6 +3971,15 @@ export default function IncidentView() {
                               >
                                 <Paperclip className="w-4 h-4 mr-2" />
                                 Upload File
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => document.getElementById('edit-chat-folder-input-mobile')?.click()}
+                                className="w-full justify-start"
+                              >
+                                <FolderUp className="w-4 h-4 mr-2" />
+                                Upload Folder
                               </Button>
                               <Button 
                                 variant="outline" 
@@ -3464,7 +3994,7 @@ export default function IncidentView() {
                             
                             {/* Evidence picker */}
                             {showEditEvidencePicker && (() => {
-                              const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'];
+                              const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo', 'service_photo'];
                               const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
                               return (
                                 <div className="p-2 bg-slate-50 rounded border border-slate-200 max-h-32 overflow-y-auto">
@@ -3523,7 +4053,7 @@ export default function IncidentView() {
                               <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 overflow-hidden mt-[10px] mb-[10px] pt-[8px] pb-[8px] ${
                                 log.isAi 
                                   ? "bg-transparent text-slate-700" 
-                                  : "bg-[#f1f5f9] text-slate-600 font-normal border border-slate-200/60 shadow-sm"
+                                  : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm"
                               }`}>
                         {log.isAi ? (
                           <div style={{ fontFamily: 'var(--font-chat)' }}>
@@ -3633,7 +4163,8 @@ export default function IncidentView() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                              className={`h-7 w-7 ${resendMutation.isPending ? 'text-slate-900 bg-slate-200 opacity-60 cursor-not-allowed' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                              disabled={resendMutation.isPending}
                               onClick={() => {
                                 // Find the user message before this AI response and resend it
                                 const chatLogsArr = chatLogs || [];
@@ -3645,7 +4176,7 @@ export default function IncidentView() {
                                   }
                                 }
                               }}
-                              title="Regenerate response"
+                              title={resendMutation.isPending ? "Regenerating..." : "Regenerate response"}
                               data-testid={`resend-ai-${log.id}`}
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
@@ -3684,9 +4215,10 @@ export default function IncidentView() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                              className={`h-7 w-7 ${resendMutation.isPending ? 'text-slate-900 bg-slate-200 opacity-60 cursor-not-allowed' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+                              disabled={resendMutation.isPending}
                               onClick={() => resendMutation.mutate({ logId: log.id, message: log.content })}
-                              title="Resend message"
+                              title={resendMutation.isPending ? "Regenerating..." : "Resend message"}
                               data-testid={`resend-user-${log.id}`}
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
@@ -3709,142 +4241,27 @@ export default function IncidentView() {
                 </div>
               </div>
             ))}
-            {sendMutation.isPending && (
-              <div className="flex gap-4">
+            {(sendMutation.isPending || resendMutation.isPending) && (
+              <div className="flex gap-4 animate-fade-in-pulse">
                 <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0">
                   <Bot className="w-5 h-5" />
                 </div>
                 <div className="p-4 rounded-xl bg-white border border-slate-200 text-slate-500 text-sm italic">
-                  Analyzing residential codes...
+                  Analyzing your case...
                 </div>
               </div>
             )}
           </div>
         </ScrollArea>
 
-        <div className="p-4 bg-white border-t border-slate-200 ml-[0px] mr-[0px] pl-[10px] pr-[10px] pt-[10px] pb-[10px]">
-          <div className="max-w-3xl mx-auto space-y-2">
-            {/* Attachment previews */}
-            {chatAttachments.length > 0 && (
-              <div className="flex gap-2 flex-wrap">
-                {chatAttachments.map((url, idx) => (
-                  <div key={idx} className="relative group">
-                    <img 
-                      src={url} 
-                      loading="lazy"
-                      alt="Attached" 
-                      className="w-16 h-16 object-cover rounded border border-slate-200" 
-                      data-testid={`chat-attachment-preview-${idx}`}
-                    />
-                    <button 
-                      onClick={() => removeAttachment(url)}
-                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      data-testid={`remove-chat-attachment-${idx}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Evidence picker dropdown */}
-            {showEvidencePicker && (() => {
-              const photoTypes = ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'];
-              const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
-              return (
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
-                  <div className="text-xs font-medium text-slate-600 mb-2">Select from existing evidence:</div>
-                  <div className="flex gap-2 flex-wrap">
-                    {photoLogs.map(l => (
-                      <button 
-                        key={l.id} 
-                        onClick={() => addExistingEvidence(l.fileUrl!)}
-                        className="relative group"
-                        data-testid={`evidence-picker-${l.id}`}
-                      >
-                        <img 
-                          src={l.fileUrl!} 
-                          loading="lazy"
-                          alt="Evidence" 
-                          className="w-12 h-12 object-cover rounded border border-slate-300 hover:border-blue-500 transition-colors"
-                        />
-                      </button>
-                    ))}
-                    {photoLogs.length === 0 && (
-                      <div className="text-xs text-slate-400">No photos in evidence yet</div>
-                    )}
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setShowEvidencePicker(false)}
-                    className="mt-2 text-xs"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              );
-            })()}
-            
-            <div className="flex gap-2 items-center">
-              {/* Hidden file input for new photos */}
-              <input 
-                type="file" 
-                ref={chatPhotoInputRef} 
-                onChange={handleChatPhotoUpload}
-                accept="image/*" 
-                multiple
-                className="hidden"
-              />
-              
-              {/* Attachment buttons */}
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => chatPhotoInputRef.current?.click()}
-                disabled={uploadChatPhotoMutation.isPending}
-                title="Upload File"
-                data-testid="button-upload-chat-photo"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={() => setShowEvidencePicker(!showEvidencePicker)}
-                title="Attach From Evidence"
-                data-testid="button-pick-evidence"
-              >
-                <FolderOpen className="w-4 h-4" />
-              </Button>
-              
-              <Textarea 
-                ref={chatInputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !sendMutation.isPending) {
-                    e.preventDefault();
-                    sendMutation.mutate({ message: input, attachments: chatAttachments });
-                  }
-                }}
-                placeholder="" 
-                className="flex-1 min-h-[40px] max-h-[200px] resize-y caret-slate-800"
-                data-testid="input-chat-message"
-                rows={1}
-              />
-              <Button 
-                onClick={() => sendMutation.mutate({ message: input, attachments: chatAttachments })} 
-                disabled={sendMutation.isPending || (!input.trim() && chatAttachments.length === 0)}
-                data-testid="button-send-chat"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ChatInput
+          ref={chatInputRef}
+          incidentId={id!}
+          logs={logs}
+          isSending={sendMutation.isPending}
+          autoFocusWhenEmpty={shouldAutoFocus}
+          onSend={(message, attachments) => sendMutation.mutate({ message, attachments })}
+        />
       </div>
       <GuidedTour />
     </div>

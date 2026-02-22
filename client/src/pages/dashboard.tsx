@@ -4,7 +4,7 @@ import { Incident, InsertIncident, IncidentLog } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, FolderOpen, Clock, CheckCircle, Phone, MessageSquare, Mail, FileText, Image as ImageIcon, Pencil, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, FolderOpen, Clock, CheckCircle, Phone, MessageSquare, Mail, FileText, Image as ImageIcon, Pencil, Trash2, ChevronRight, ChevronDown, Paperclip, X, FolderUp } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -470,6 +470,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 value={editingIncident?.description || ""} 
                 onChange={e => setEditingIncident(prev => prev ? {...prev, description: e.target.value} : null)}
                 required 
+                className="min-h-[140px]"
               />
             </div>
             <Button type="submit" className="w-full" disabled={updateIncidentMutation.isPending}>
@@ -546,14 +547,12 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                               : "bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90"
                           }`}>
                             <div className="flex items-center gap-1.5 mb-0.5">
-                              <MessageSquare className={`w-3 h-3 ${log.isAi ? "text-slate-900" : "text-[var(--color-user-bubble-foreground)]"}`} />
-                              <span className={`font-medium text-xs ${log.isAi ? "text-slate-800" : "text-[var(--color-user-bubble-foreground)]"}`}>
+                              <MessageSquare className="w-3 h-3 text-slate-900" />
+                              <span className="font-medium text-xs text-slate-800">
                                 {log.isAi ? 'Assistant' : 'You'}
                               </span>
                             </div>
-                            <div className={`text-xs line-clamp-2 font-normal prose prose-slate max-w-none prose-p:my-0 ${
-                              log.isAi ? "text-slate-600" : "text-[var(--color-user-bubble-foreground)]"
-                            }`}>
+                            <div className="text-xs line-clamp-2 font-normal prose prose-slate max-w-none prose-p:my-0 text-slate-600">
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]}
                                 components={{
@@ -711,6 +710,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                     value={note} 
                     onChange={e => setNote(e.target.value)}
                     data-testid="input-note-content"
+                    className="min-h-[140px]"
                   />
                 </div>
                 <Button 
@@ -741,6 +741,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                     value={note} 
                     onChange={e => setNote(e.target.value)}
                     data-testid="input-call-notes"
+                    className="min-h-[140px]"
                   />
                 </div>
                 {!editingLog && (
@@ -802,6 +803,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                     value={note} 
                     onChange={e => setNote(e.target.value)}
                     data-testid="input-text-notes"
+                    className="min-h-[140px]"
                   />
                 </div>
                 {!editingLog && (
@@ -863,6 +865,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                     value={note} 
                     onChange={e => setNote(e.target.value)}
                     data-testid="input-email-notes"
+                    className="min-h-[140px]"
                   />
                 </div>
                 {!editingLog && (
@@ -924,7 +927,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                     value={note} 
                     onChange={e => setNote(e.target.value)}
                     data-testid="input-photo-content"
-                    className="pl-[12px] pr-[12px]"
+                    className="min-h-[140px] pl-[12px] pr-[12px]"
                   />
                 </div>
                 {!editingLog && (
@@ -1158,8 +1161,9 @@ export default function Dashboard() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!title.trim() || !desc.trim()) return;
     createMutation.mutate({ data: { title, description: desc }, photos: incidentPhotos });
   };
 
@@ -1181,67 +1185,111 @@ export default function Dashboard() {
               {incidents && incidents.length > 0 ? 'Add New Log' : 'Create First Log'}
             </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Start New Log</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[45px] pb-[45px]">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Log Title</Label>
                 <Input 
-                  placeholder="e.g., HVAC Failure, Water Leak" 
+                  placeholder="Log Title" 
                   value={title} 
                   onChange={e => setTitle(e.target.value)} 
                   required 
+                  className="mt-[6px] mb-[6px] placeholder:text-slate-400"
+                  data-testid="input-log-title"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
                 <Textarea 
                   placeholder="Briefly describe what happened..." 
                   value={desc} 
                   onChange={e => setDesc(e.target.value)} 
                   required 
+                  className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
+                  data-testid="input-log-description"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Photo: Attach Photos (Optional)</Label>
-                <Input 
-                  type="file" 
-                  accept="image/*"
-                  multiple
-                  data-testid="input-incident-photos"
-                  onChange={(e) => {
-                    setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
-                    e.target.value = '';
-                  }}
-                />
                 {incidentPhotos.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="flex flex-wrap gap-2">
                     {incidentPhotos.map((file, idx) => (
-                      <div key={idx} className="relative">
-                        <img src={URL.createObjectURL(file)} alt="" className="w-8 h-8 object-cover rounded border" data-testid={`img-incident-photo-${idx}`} />
+                      <div key={idx} className="relative group">
+                        {file.type.startsWith('image/') ? (
+                          <img src={URL.createObjectURL(file)} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" data-testid={`img-incident-photo-${idx}`} />
+                        ) : (
+                          <div className="w-12 h-12 flex items-center justify-center rounded border border-slate-200 bg-slate-50">
+                            <Paperclip className="w-4 h-4 text-slate-500" />
+                          </div>
+                        )}
                         <button
                           type="button"
                           data-testid={`btn-remove-incident-photo-${idx}`}
                           onClick={() => setIncidentPhotos(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         >
-                          <Trash2 className="w-2 h-2" />
+                          <X className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
                   </div>
                 )}
+                <div className="flex flex-col gap-2">
+                  <input 
+                    type="file" 
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    multiple
+                    data-testid="input-incident-photos"
+                    onChange={(e) => {
+                      setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                    ref={(el) => { if (el) (el as any)._newLogFileInput = true; }}
+                    id="new-log-file-input"
+                  />
+                  <input 
+                    type="file" 
+                    accept="image/*,.pdf,.doc,.docx,.txt"
+                    multiple
+                    onChange={(e) => {
+                      setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                    id="new-log-folder-input"
+                    {...({ webkitdirectory: "", directory: "" } as any)}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    type="button"
+                    onClick={() => document.getElementById('new-log-file-input')?.click()}
+                    className="w-full justify-start"
+                    data-testid="button-new-log-upload-file"
+                  >
+                    <Paperclip className="w-4 h-4 mr-2" />
+                    Upload File
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    type="button"
+                    onClick={() => document.getElementById('new-log-folder-input')?.click()}
+                    className="w-full justify-start"
+                    data-testid="button-new-log-upload-folder"
+                  >
+                    <FolderUp className="w-4 h-4 mr-2" />
+                    Upload Folder
+                  </Button>
+                </div>
               </div>
               <Button 
-                type="submit" 
+                onClick={() => handleSubmit()}
                 className="w-full" 
                 disabled={createMutation.isPending}
+                data-testid="btn-create-log"
               >
                 Create Log
               </Button>
-            </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

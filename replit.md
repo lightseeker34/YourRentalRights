@@ -46,7 +46,7 @@ Preferred communication style: Simple, everyday language.
 4. **Glass Morphism UI**: Custom CSS variables for translucent card backgrounds matching design specs
 5. **First User Admin**: The first user to register automatically becomes an admin
 6. **Editable Content**: Admin users can edit text content on the site by hovering over editable areas and clicking the pencil icon. Content is stored in `appSettings` with `content_` prefix.
-7. **Incident Management**: Edit button between status toggle and delete to modify title/description. Three log types (Call, Text, Email) with notes and optional photo attachment. Photos categorized by interaction type (call_photo, text_photo, email_photo) in metadata.
+7. **Incident Management**: Edit button between status toggle and delete to modify title/description. Four log types (Call, Text, Email, Service Request) with notes and optional photo attachment. Photos categorized by interaction type (call_photo, text_photo, email_photo, service_photo) in metadata.
 8. **Dashboard Timeline**: Horizontal scrolling layout with vertical sub-entry stacks per incident. Master bubble shows Open/Closed status.
 9. **PDF Export**: jsPDF-based hierarchical export with embedded images, evidence timeline, and AI chat history. Available from incident view sidebar.
 10. **Case Templates**: Pre-built templates for common tenant issues (heating, mold, security, pests, lease violations, noise) available on resources page with login requirement.
@@ -70,7 +70,8 @@ Preferred communication style: Simple, everyday language.
 - **xAI Grok**: Primary AI using grok-4-1-fast-reasoning model via OpenAI SDK compatibility (baseURL: https://api.x.ai/v1)
 - **OpenAI**: Fallback to GPT-4o if no Grok API key configured
 - **Multimodal Vision**: Supports sending images as base64-encoded data URLs for AI analysis (local files converted to base64, external URLs passed directly)
-- **RAG Context Pipeline**: Each chat includes user profile, incident details, and all evidence logs
+- **RAG Context Pipeline**: Each chat includes user profile, incident details, and all evidence logs. Shared `server/ai-context.ts` module provides deterministic formatting (ISO dates, stable sort by timestamp+id, structured labels) used by both chat and litigation endpoints.
+- **Litigation Cache**: Litigation review results are cached in appSettings with a SHA-256 hash of the timeline data; cache auto-invalidates when evidence changes.
 - **Chat Attachments**: Users can attach photos to chat messages (upload new or pick from evidence)
 - **Chat Edit**: User messages can be edited after sending
 - API keys stored in `appSettings` table, managed via admin panel (grok_api_key, openai_api_key)
@@ -86,3 +87,17 @@ Preferred communication style: Simple, everyday language.
 - **Vite**: Frontend bundler with React plugin
 - **esbuild**: Server bundler for production
 - **drizzle-kit**: Database migrations (`db:push` script)
+
+### Severity / Criticality Tagging
+- **Severity Levels**: `critical`, `important`, `routine` — stored in `metadata.severity` JSONB field on incident_logs
+- **Default Mapping**: Each log type has a default severity (e.g., calls → important, notes → routine). Users can override when creating entries.
+- **Shared Types**: `SEVERITY_LEVELS`, `SeverityLevel`, `DEFAULT_SEVERITY_BY_TYPE`, `getLogSeverity()` defined in `shared/schema.ts`
+- **UI**: Severity selector buttons in Call/Text/Email log dialogs; severity badges (Critical/Important) shown on timeline entries
+
+### Two-Pass Context Assembly
+- **Purpose**: Ensures AI never misses critical evidence while staying within token limits
+- **Pass 1**: Always includes all `critical` and `important` entries + entries from the last 14 days
+- **Pass 2**: Backfills up to 50 older `routine` entries for historical context
+- **Structured Timeline**: `StructuredTimelineEntry` objects with `{id, date, type, severity, description, attachments, hasFile}` instead of plain text
+- **Implementation**: `assembleContextTwoPasses()` in `server/ai-context.ts`
+- **Cache Invalidation**: Timeline hash now includes severity in the hash payload, so changing an entry's severity invalidates the cache

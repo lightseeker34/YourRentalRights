@@ -8,6 +8,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import OpenAI from "openai";
+import { formatEvidenceContext, formatEvidenceTimeline, formatPhotoList, formatTimelineForPrompt, formatPhotoListForPrompt, buildUserContext, buildIncidentContext, computeTimelineHash } from "./ai-context";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -356,10 +357,12 @@ export async function registerRoutes(
     if (!incident) return res.sendStatus(404);
     if (incident.userId !== req.user!.id && !req.user!.isAdmin) return res.sendStatus(403);
     
-    const { content } = req.body;
+    const { content, metadata } = req.body;
     if (!content) return res.status(400).json({ error: "Content is required" });
     
-    const updated = await storage.updateLog(logId, { content });
+    const updates: { content?: string; metadata?: any } = { content };
+    if (metadata !== undefined) updates.metadata = metadata;
+    const updated = await storage.updateLog(logId, updates);
     res.json(updated);
   });
 
@@ -467,39 +470,14 @@ export async function registerRoutes(
     const openaiApiKey = await storage.getSetting("openai_api_key");
 
     // Build comprehensive context with user profile
-    const userContext = [
-      user.fullName && `Tenant Name: ${user.fullName}`,
-      user.phone && `Phone: ${user.phone}`,
-      user.email && `Email: ${user.email}`,
-      user.address && `Property Address: ${user.address}`,
-      user.unitNumber && `Unit: ${user.unitNumber}`,
-      user.rentalAgency && `Property Management Company: ${user.rentalAgency}`,
-      user.propertyManagerName && `Property Manager: ${user.propertyManagerName}`,
-      user.propertyManagerPhone && `Property Manager Phone: ${user.propertyManagerPhone}`,
-      user.propertyManagerEmail && `Property Manager Email: ${user.propertyManagerEmail}`,
-      user.leaseStartDate && `Lease Start Date: ${user.leaseStartDate}`,
-      user.monthlyRent && `Monthly Rent: ${user.monthlyRent}`,
-      user.emergencyContact && `Emergency Contact: ${user.emergencyContact}`,
-      user.leaseDocumentUrl && `Lease Document: Available for reference`,
-    ].filter(Boolean).join("\n");
+    const userContext = buildUserContext(user);
 
     // Incident context
-    const incidentContext = `Current Issue: ${incident.title}\nDescription: ${incident.description}\nStatus: ${incident.status}`;
+    const incidentContext = buildIncidentContext(incident);
 
-    // Get all evidence logs for RAG context
+    // Get all evidence logs for RAG context (deterministic: sorted by timestamp ASC, id ASC)
     const allLogs = await storage.getLogsByIncident(incidentId);
-    const evidenceLogs = allLogs.filter((l: any) => ['call', 'text', 'email', 'photo', 'document', 'note'].includes(l.type));
-    
-    const evidenceContext = evidenceLogs.map((log: any) => {
-      const date = new Date(log.createdAt).toLocaleDateString();
-      if (log.type === 'call') return `[${date}] CALL LOG: ${log.content}`;
-      if (log.type === 'text') return `[${date}] TEXT MESSAGE: ${log.content}`;
-      if (log.type === 'email') return `[${date}] EMAIL: ${log.content}`;
-      if (log.type === 'photo') return `[${date}] PHOTO EVIDENCE: ${log.content}`;
-      if (log.type === 'document') return `[${date}] DOCUMENT: ${log.content}`;
-      if (log.type === 'note') return `[${date}] NOTE: ${log.content}`;
-      return null;
-    }).filter(Boolean).join("\n");
+    const evidenceContext = formatEvidenceContext(allLogs);
 
     // Get base URL for constructing full image URLs
     const baseUrl = process.env.REPLIT_DEV_DOMAIN 
@@ -516,6 +494,7 @@ ${userContext || "No profile information available."}
 ${incidentContext}
 
 ## EVIDENCE & COMMUNICATION LOG
+Items tagged [CRITICAL] or [IMPORTANT] are high-priority evidence. Always reference these when relevant.
 ${evidenceContext || "No evidence logged yet."}
 
 Remember: You have access to the tenant's case information above. Use this context to provide personalized, actionable advice. Reference specific dates, communications, and evidence when relevant.
@@ -749,8 +728,21 @@ PHOTO ANALYSIS GUIDELINES:
     const incidentOwner = await storage.getUser(incident.userId);
     if (!incidentOwner) return res.sendStatus(404);
     
-    // Get all evidence logs
+    // Get all evidence logs (deterministic: sorted by timestamp ASC, id ASC)
     const allLogs = await storage.getLogsByIncident(incidentId);
+    
+    // Check cache: if timeline hasn't changed, return cached result
+    const timelineHash = computeTimelineHash(allLogs);
+    const cacheKey = `litigation_cache_${incidentId}`;
+    const cachedRaw = await storage.getSetting(cacheKey);
+    if (cachedRaw) {
+      try {
+        const cached = JSON.parse(cachedRaw);
+        if (cached.hash === timelineHash && cached.review) {
+          return res.json({ ...cached.review, cached: true });
+        }
+      } catch {}
+    }
     
     // Compile case context
     const userProfile = {
@@ -765,27 +757,13 @@ PHOTO ANALYSIS GUIDELINES:
       monthlyRent: incidentOwner.monthlyRent,
     };
     
-    // Separate log types
-    const evidenceLogs = allLogs.filter((l: any) => ['call', 'text', 'email', 'note', 'document'].includes(l.type));
-    const photoLogs = allLogs.filter((l: any) => ['photo', 'call_photo', 'text_photo', 'email_photo', 'chat_photo'].includes(l.type));
+    // Use shared deterministic formatters for evidence
+    const evidenceTimeline = formatEvidenceTimeline(allLogs);
+    const photos = formatPhotoList(allLogs);
     const chatLogs = allLogs.filter((l: any) => l.type === 'chat');
     
-    // Build evidence timeline
-    const evidenceTimeline = evidenceLogs.map((log: any) => ({
-      date: new Date(log.createdAt).toISOString(),
-      type: log.type,
-      content: log.content,
-    }));
-    
-    // Build photo list with descriptions
-    const photos = photoLogs.map((log: any) => ({
-      date: new Date(log.createdAt).toISOString(),
-      description: log.content,
-      fileUrl: log.fileUrl,
-    }));
-    
-    // Calculate case duration
-    const firstLogDate = allLogs.length > 0 ? new Date(allLogs[allLogs.length - 1].createdAt) : new Date(incident.createdAt);
+    // Calculate case duration from earliest log (logs sorted ASC, first element is oldest)
+    const firstLogDate = allLogs.length > 0 ? new Date(allLogs[0].createdAt) : new Date(incident.createdAt);
     const caseDurationDays = Math.floor((Date.now() - firstLogDate.getTime()) / (1000 * 60 * 60 * 24));
     
     // Get API keys
@@ -812,16 +790,19 @@ Title: ${incident.title}
 Description: ${incident.description}
 Status: ${incident.status}
 Case Duration: ${caseDurationDays} days
-Total Evidence Items: ${evidenceLogs.length}
+Total Evidence Items: ${evidenceTimeline.length}
 Photos Documented: ${photos.length}
 
 ## EVIDENCE TIMELINE
-${evidenceTimeline.length > 0 ? evidenceTimeline.map(e => `[${new Date(e.date).toLocaleDateString()}] ${e.type.toUpperCase()}: ${e.content}`).join('\n') : 'No evidence logs recorded.'}
+Items tagged [CRITICAL] or [IMPORTANT] are high-priority evidence that must be addressed in your analysis.
+${formatTimelineForPrompt(evidenceTimeline)}
 
 ## PHOTO EVIDENCE
-${photos.length > 0 ? photos.map(p => `[${new Date(p.date).toLocaleDateString()}] ${p.description}`).join('\n') : 'No photos documented.'}
+${formatPhotoListForPrompt(photos)}
 
 ## ANALYSIS INSTRUCTIONS
+Pay special attention to entries marked [CRITICAL] — these represent health hazards, legal deadlines, or severe conditions. Entries marked [IMPORTANT] indicate significant communications or documentation.
+
 Based on the tenant's location (${userProfile.address || 'address not provided'}), identify relevant local housing codes and tenant protection laws. Analyze:
 
 1. **Timeline Analysis**: Evaluate the chronology of events, landlord response times, and any patterns of delay or neglect.
@@ -969,6 +950,9 @@ Provide your response in this exact JSON format:
         fullAnalysis: analysisResult,
       });
       
+      // Cache the result with timeline hash for invalidation
+      await storage.setSetting(cacheKey, JSON.stringify({ hash: timelineHash, review }));
+      
       res.json(review);
       
     } catch (error: any) {
@@ -1103,16 +1087,11 @@ Provide your response in this exact JSON format:
   // Posts
   app.get("/api/forum/posts", async (req, res) => {
     const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
     const authorId = req.query.authorId ? parseInt(req.query.authorId as string) : undefined;
-    let posts = await storage.getForumPosts(categoryId, limit);
-    
-    // Filter by author if specified
-    if (authorId) {
-      posts = posts.filter(p => p.authorId === authorId);
-    }
-    
-    res.json(posts);
+    const { posts, total } = await storage.getForumPosts(categoryId, limit, offset, authorId);
+    res.json({ posts, total });
   });
 
   app.get("/api/forum/posts/:id", async (req, res) => {
@@ -1479,6 +1458,26 @@ Provide your response in this exact JSON format:
       res.json(stats);
     } catch (err) {
       res.status(500).json({ error: "Failed to get user stats" });
+    }
+  });
+
+  app.get("/api/admin/dashboard", requireAdmin, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const validDays = [7, 30, 90].includes(days) ? days : 30;
+      const [analytics, pdfExports, litigationReviews, strongCases] = await Promise.all([
+        storage.getAnalytics(validDays),
+        storage.getPdfExportCount(),
+        storage.getLitigationReviewCount(),
+        storage.getStrongCaseCount(),
+      ]);
+      res.json({
+        analytics,
+        litigationStats: { pdfExports, litigationReviews, strongCases },
+      });
+    } catch (err) {
+      console.error("Dashboard error:", err);
+      res.status(500).json({ error: "Failed to get dashboard data" });
     }
   });
 

@@ -52,9 +52,9 @@
 
   --font-chat: "Segoe UI", system-ui, -apple-system, sans-serif;
 
-  --color-user-bubble: #bae6fd;
-  --color-user-bubble-border: #7dd3fc;
-  --color-user-bubble-foreground: #0369a1;
+  --color-user-bubble: #dbeaff;
+  --color-user-bubble-border: #b8d4f9;
+  --color-user-bubble-foreground: #1e40af;
 
   --color-border: var(--color-slate-200);
   --color-input: var(--color-slate-200);
@@ -169,4 +169,17 @@
   *::-webkit-scrollbar {
     display: none;
   }
+}
+
+@keyframes fadeInPulse {
+  0% { opacity: 0; transform: translateY(4px); }
+  40% { opacity: 1; transform: translateY(0); }
+  60% { opacity: 1; }
+  80% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.animate-fade-in-pulse {
+  animation: fadeInPulse 1.5s ease-in-out;
+  animation-fill-mode: both;
 }

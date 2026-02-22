@@ -60,7 +60,7 @@ const ALL_TOUR_STEPS: TourStep[] = [
     noCaseTarget: '[data-testid="add-new-log-button"]',
     noCaseContent: "Create your first case using this button, then come back to the tour to explore the AI assistant and other features inside a case!",
   },
-  // Incident View Steps
+  // Incident View Steps — sidebar steps first, then chat steps
   {
     page: "/dashboard/incident",
     target: '[data-testid="status-toggle"]',
@@ -73,19 +73,38 @@ const ALL_TOUR_STEPS: TourStep[] = [
   },
   {
     page: "/dashboard/incident",
-    target: '[data-testid="button-upload-photo"]',
-    title: "Upload Photo Evidence",
-    content: "Photos are powerful evidence! Upload pictures of mold, leaks, broken fixtures, or any issue. Each photo is timestamped and stored securely.",
+    target: '[data-testid="button-edit-incident"]',
+    title: "Edit Case & Upload Evidence",
+    content: "Click the edit button to update your case details and upload photos, documents, or entire folders as evidence. Everything is timestamped and stored securely.",
     placement: "left",
-    mobileTarget: '[data-testid="button-upload-photo-mobile"]',
+    mobileTarget: '[data-testid="button-edit-incident-mobile"]',
   },
   {
     page: "/dashboard/incident",
-    target: '[data-testid="button-upload-document"]',
-    title: "Save Important Documents",
-    content: "Upload PDFs of emails, notices, or any official documents related to your case. Keep everything organized in one place.",
+    target: '[data-testid="log-buttons"]',
+    title: "Log Your Interactions",
+    content: "Record every call, text, email, or service request with your landlord or property manager. Each log is timestamped and you can attach photos or documents as proof. This builds your evidence timeline.",
+    placement: "right",
+    mobileTarget: '[data-testid="log-buttons-mobile"]',
+    mobilePosition: "top",
+  },
+  {
+    page: "/dashboard/incident",
+    target: '[data-testid="button-export-pdf-desktop"]',
+    title: "Export Your Case as PDF",
+    content: "Download a complete PDF report of your case, including all evidence, photos, and communication logs. Perfect for sharing with a lawyer or filing a complaint.",
     placement: "left",
-    mobileTarget: '[data-testid="button-upload-document-mobile"]',
+    mobileTarget: '[data-testid="button-export-pdf"]',
+    mobilePosition: "bottom",
+  },
+  {
+    page: "/dashboard/incident",
+    target: '[data-testid="button-ai-analysis-desktop"]',
+    title: "AI Case Analysis",
+    content: "Let the AI review your entire case for litigation potential. It checks housing codes, landlord response patterns, and evidence strength to give you a detailed assessment.",
+    placement: "left",
+    mobileTarget: '[data-testid="button-ai-analysis"]',
+    mobilePosition: "bottom",
   },
   {
     page: "/dashboard/incident",
@@ -108,9 +127,9 @@ const ALL_TOUR_STEPS: TourStep[] = [
   },
   {
     page: "/dashboard/incident",
-    target: '[data-testid="button-upload-chat-photo"]',
-    title: "Share Photos with your Assistant",
-    content: "You can attach photos directly to your messages! The AI can analyze images to help identify issues like mold or water damage.",
+    target: '[data-testid="button-plus-menu"]',
+    title: "Attach Files to Chat",
+    content: "Use the + button to upload files, folders, or attach existing evidence to your messages. The AI can analyze images to help identify issues like mold or water damage.",
     placement: "top",
     desktopOffset: { top: -40 },
     mobilePosition: "bottom",
@@ -560,7 +579,16 @@ export function GuidedTour() {
       if (cancelled) return;
       
       // Now compute the final positions DIRECTLY (not from state)
-      const positions = computeTargetPositions();
+      // Retry a few times if target not found (e.g. drawer still animating open/closed)
+      let positions = computeTargetPositions();
+      if (!positions) {
+        for (let i = 0; i < 4; i++) {
+          await new Promise(r => setTimeout(r, 200));
+          if (cancelled) return;
+          positions = computeTargetPositions();
+          if (positions) break;
+        }
+      }
       if (cancelled) return;
       
       if (positions) {

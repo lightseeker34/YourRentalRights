@@ -263,6 +263,34 @@ export const insertForumReactionSchema = createInsertSchema(forumReactions).pick
   type: true,
 });
 
+export const SEVERITY_LEVELS = ['critical', 'important', 'routine'] as const;
+export type SeverityLevel = typeof SEVERITY_LEVELS[number];
+
+export const DEFAULT_SEVERITY_BY_TYPE: Record<string, SeverityLevel> = {
+  call: 'important',
+  text: 'routine',
+  email: 'important',
+  photo: 'important',
+  document: 'important',
+  note: 'routine',
+  call_photo: 'important',
+  text_photo: 'routine',
+  email_photo: 'important',
+  chat: 'routine',
+  chat_photo: 'routine',
+  service: 'important',
+  service_photo: 'important',
+  service_document: 'important',
+};
+
+export function getLogSeverity(log: { type: string; metadata: any }): SeverityLevel {
+  if (log.metadata && typeof log.metadata === 'object' && 'severity' in log.metadata) {
+    const s = (log.metadata as any).severity;
+    if (SEVERITY_LEVELS.includes(s)) return s;
+  }
+  return DEFAULT_SEVERITY_BY_TYPE[log.type] || 'routine';
+}
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type User = typeof users.$inferSelect;

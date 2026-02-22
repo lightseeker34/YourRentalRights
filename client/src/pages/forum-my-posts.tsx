@@ -49,7 +49,7 @@ export default function ForumMyPosts() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  const { data: myPosts = [] } = useQuery<ForumPost[]>({
+  const { data: myPostsData } = useQuery<{ posts: ForumPost[]; total: number }>({
     queryKey: ["/api/forum/posts", { authorId: user?.id }],
     queryFn: async () => {
       const res = await fetch(`/api/forum/posts?authorId=${user?.id}`);
@@ -57,6 +57,7 @@ export default function ForumMyPosts() {
     },
     enabled: !!user,
   });
+  const myPosts = myPostsData?.posts ?? [];
 
   const { data: myReplies = [] } = useQuery<ForumReply[]>({
     queryKey: ["/api/forum/replies/user", user?.id],
@@ -73,13 +74,14 @@ export default function ForumMyPosts() {
     enabled: !!user,
   });
 
-  const { data: allPosts = [] } = useQuery<ForumPost[]>({
+  const { data: allPostsData } = useQuery<{ posts: ForumPost[]; total: number }>({
     queryKey: ["/api/forum/posts"],
     queryFn: async () => {
       const res = await fetch("/api/forum/posts");
       return res.json();
     },
   });
+  const allPosts = allPostsData?.posts ?? [];
 
   const { data: categories = [] } = useQuery<ForumCategory[]>({
     queryKey: ["/api/forum/categories"],
@@ -215,7 +217,7 @@ export default function ForumMyPosts() {
         <TabsContent value="replies">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Replies You've Made</CardTitle>
+              <CardTitle className="text-lg text-center">Replies You've Made</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {myReplies.length === 0 ? (

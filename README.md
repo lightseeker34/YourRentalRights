@@ -1,2 +1,0 @@
-# YourRentalRights
-Tenant advocacy platform

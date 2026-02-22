@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -18,10 +18,10 @@ const AuthPage = lazy(() => import("@/pages/auth"));
 const Privacy = lazy(() => import("@/pages/privacy"));
 const Terms = lazy(() => import("@/pages/terms"));
 const Contact = lazy(() => import("@/pages/contact"));
-const Forum = lazy(() => import("@/pages/forum"));
-const ForumCategory = lazy(() => import("@/pages/forum-category"));
-const ForumPost = lazy(() => import("@/pages/forum-post"));
-const ForumMyPosts = lazy(() => import("@/pages/forum-my-posts"));
+const Forum = lazyWithPreload(() => import("@/pages/forum"));
+const ForumCategory = lazyWithPreload(() => import("@/pages/forum-category"));
+const ForumPost = lazyWithPreload(() => import("@/pages/forum-post"));
+const ForumMyPosts = lazyWithPreload(() => import("@/pages/forum-my-posts"));
 
 export const Dashboard = lazyWithPreload(() => import("@/pages/dashboard"));
 export const IncidentView = lazyWithPreload(() => import("@/pages/incident-view"));
@@ -50,6 +50,17 @@ function PageLoader() {
 }
 
 function Router() {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Forum.preload();
+      ForumCategory.preload();
+      ForumPost.preload();
+      Dashboard.preload();
+      IncidentView.preload();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <Layout>
       <Suspense fallback={<PageLoader />}>

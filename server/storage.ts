@@ -41,7 +41,7 @@ export interface IStorage {
   getLogsByIncident(incidentId: number): Promise<IncidentLog[]>;
   getLog(id: number): Promise<IncidentLog | undefined>;
   getLogByFileUrl(fileUrl: string): Promise<IncidentLog | undefined>;
-  updateLog(id: number, updates: { content?: string }): Promise<IncidentLog | undefined>;
+  updateLog(id: number, updates: { content?: string; metadata?: any }): Promise<IncidentLog | undefined>;
   deleteLog(id: number): Promise<void>;
 
   getSetting(key: string): Promise<string | undefined>;
@@ -59,7 +59,7 @@ export interface IStorage {
   updateForumCategory(id: number, updates: Partial<InsertForumCategory & { isLocked: boolean }>): Promise<ForumCategory | undefined>;
   deleteForumCategory(id: number): Promise<void>;
 
-  getForumPosts(categoryId?: number, limit?: number): Promise<ForumPost[]>;
+  getForumPosts(categoryId?: number, limit?: number, offset?: number, authorId?: number): Promise<{ posts: ForumPost[]; total: number }>;
   getForumPost(id: number): Promise<ForumPost | undefined>;
   createForumPost(post: InsertForumPost & { authorId: number }): Promise<ForumPost>;
   updateForumPost(id: number, updates: Partial<{ title: string; content: string; isPinned: boolean; isLocked: boolean; categoryId: number }>): Promise<ForumPost | undefined>;
@@ -260,7 +260,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLogsByIncident(incidentId: number): Promise<IncidentLog[]> {
-    return await db.select().from(incidentLogs).where(eq(incidentLogs.incidentId, incidentId)).orderBy(incidentLogs.createdAt);
+    return await db.select().from(incidentLogs).where(eq(incidentLogs.incidentId, incidentId)).orderBy(asc(incidentLogs.createdAt), asc(incidentLogs.id));
   }
 
   async getLog(id: number): Promise<IncidentLog | undefined> {
@@ -273,7 +273,7 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
 
-  async updateLog(id: number, updates: { content?: string }): Promise<IncidentLog | undefined> {
+  async updateLog(id: number, updates: { content?: string; metadata?: any }): Promise<IncidentLog | undefined> {
     const [log] = await db.update(incidentLogs).set(updates).where(eq(incidentLogs.id, id)).returning();
     return log;
   }
@@ -339,16 +339,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Forum Posts
-  async getForumPosts(categoryId?: number, limit?: number): Promise<ForumPost[]> {
+  async getForumPosts(categoryId?: number, limit?: number, offset?: number, authorId?: number): Promise<{ posts: ForumPost[]; total: number }> {
+    const conditions = [];
+    if (categoryId) conditions.push(eq(forumPosts.categoryId, categoryId));
+    if (authorId) conditions.push(eq(forumPosts.authorId, authorId));
+    const whereClause = conditions.length === 1 ? conditions[0] : conditions.length > 1 ? and(...conditions) : undefined;
+
+    let countQuery = db.select({ count: count() }).from(forumPosts);
+    if (whereClause) {
+      countQuery = countQuery.where(whereClause) as typeof countQuery;
+    }
+    const [countResult] = await countQuery;
+    const total = countResult?.count ?? 0;
+
     let query = db.select().from(forumPosts);
-    if (categoryId) {
-      query = query.where(eq(forumPosts.categoryId, categoryId)) as typeof query;
+    if (whereClause) {
+      query = query.where(whereClause) as typeof query;
     }
     query = query.orderBy(desc(forumPosts.isPinned), desc(forumPosts.lastActivityAt)) as typeof query;
     if (limit) {
       query = query.limit(limit) as typeof query;
     }
-    return await query;
+    if (offset) {
+      query = query.offset(offset) as typeof query;
+    }
+    const posts = await query;
+    return { posts, total };
   }
 
   async getForumPost(id: number): Promise<ForumPost | undefined> {

@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { 
   MessageSquare, Users, Eye, Clock, Pin, Lock, Plus, Search,
-  TrendingUp, MessageCircle, HelpCircle, ChevronRight, Paperclip, X, FileText, Image, Music, Video
+  TrendingUp, MessageCircle, HelpCircle, ChevronRight, Paperclip, X, FileText, Image, Music, Video, FolderUp
 } from "lucide-react";
 import { useRef, useEffect } from "react";
 import { GuidedTour } from "@/components/guided-tour";
@@ -185,6 +185,7 @@ function NewPostDialog({ categories }: { categories: ForumCategory[] }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -250,88 +251,94 @@ function NewPostDialog({ categories }: { categories: ForumCategory[] }) {
           <Plus className="w-4 h-4 mr-2" /> New Discussion
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Start a New Discussion</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <div>
-            <Label>Category</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger data-testid="category-select">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id.toString()}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Title</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What's your question or topic?"
-              data-testid="post-title-input"
+      <DialogContent className="w-[90%] rounded-xl py-[45px] sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200">
+        <div className="space-y-4">
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger data-testid="category-select" className="bg-slate-50 border-slate-300">
+              <SelectValue placeholder="Select Category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id.toString()}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Discussion Title"
+            data-testid="post-title-input"
+            className="placeholder:text-slate-400"
+          />
+
+          <div data-testid="post-content-input">
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Provide details about your discussion..."
+              minHeight="150px"
             />
           </div>
-          <div>
-            <Label>Content</Label>
-            <div data-testid="post-content-input">
-              <RichTextEditor
-                value={content}
-                onChange={setContent}
-                placeholder="Provide details about your discussion..."
-                minHeight="100px"
-              />
-            </div>
-          </div>
-          
-          {/* Attachments */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Attachments</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                data-testid="attach-files-btn"
-              >
-                <Paperclip className="w-4 h-4 mr-1" />
-                {uploading ? "Uploading..." : "Attach Files"}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*,application/pdf,.doc,.docx,.txt,audio/*,video/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </div>
+
+          <div className="flex flex-col gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.doc,.docx,.txt,audio/*,video/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <input
+              ref={folderInputRef}
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.doc,.docx,.txt,audio/*,video/*"
+              onChange={handleFileSelect}
+              className="hidden"
+              {...({ webkitdirectory: "", directory: "" } as any)}
+            />
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
+              data-testid="attach-files-btn"
+            >
+              <Paperclip className="w-4 h-4 text-slate-500" />
+              <span>{uploading ? "Uploading..." : "Upload File"}</span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => folderInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
+              data-testid="attach-folder-btn"
+            >
+              <FolderUp className="w-4 h-4 text-slate-500" />
+              <span>{uploading ? "Uploading..." : "Upload Folder"}</span>
+            </Button>
+
             {attachments.length > 0 && (
-              <div className="space-y-2 bg-slate-50 p-3 rounded-lg">
+              <div className="flex gap-2 flex-wrap bg-slate-50 p-2 rounded-lg border border-slate-200">
                 {attachments.map((att, idx) => (
-                  <div key={idx} className="flex items-center justify-between gap-2 text-sm">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div key={idx} className="relative group">
+                    <div className="w-10 h-10 flex items-center justify-center rounded border border-slate-200 bg-white shadow-sm">
                       {getAttachmentIcon(att.type)}
-                      <span className="truncate">{att.name}</span>
                     </div>
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
                       onClick={() => removeAttachment(idx)}
-                      className="h-6 w-6 p-0 flex-shrink-0"
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
-                      <X className="w-3 h-3" />
-                    </Button>
+                      <X className="w-2.5 h-2.5" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -377,13 +384,14 @@ export default function Forum() {
     queryKey: ["/api/forum/categories"],
   });
 
-  const { data: recentPosts = [] } = useQuery<ForumPost[]>({
+  const { data: recentPostsData } = useQuery<{ posts: ForumPost[]; total: number }>({
     queryKey: ["/api/forum/posts", { limit: 10 }],
     queryFn: async () => {
       const res = await fetch("/api/forum/posts?limit=10");
       return res.json();
     },
   });
+  const recentPosts = recentPostsData?.posts ?? [];
 
   const { data: allUsers = [] } = useQuery<ForumUser[]>({
     queryKey: ["/api/forum/users"],
