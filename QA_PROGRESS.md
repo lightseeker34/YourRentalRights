@@ -14,7 +14,7 @@
 
 ### Completed (this run)
 - Export unlock clarity pass: added an explicit AI Analysis unlock checklist (PDF export + evidence counter) in both mobile and desktop incident sidebars, with daily-limit status messaging.
-  - Commit: `1cfb38f`
+  - Commit: `c1adb45`
 
 ### Verification Notes (this run)
 - Local build passed (`npm run build`).
