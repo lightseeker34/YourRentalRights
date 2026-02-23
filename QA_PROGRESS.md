@@ -71,4 +71,19 @@
 - Next step: quick production check on incident page for thumbnail/image fallback behavior and dialog warning noise.
 
 ### Next Item
-- Add smoke-test checklist and run after each deploy.
+- Export unlock clarity: make requirements explicit in UI (checklist + counter).
+
+### Completed (this run)
+- Added a deploy smoke-test checklist and executable smoke script:
+  - `QA_SMOKE_TEST.md` with automated + manual verification steps
+  - `script/smoke-test.sh` for repeatable checks
+  - `npm run qa:smoke` script alias in `package.json`
+  - Marked smoke-test backlog item complete in `QA_TASKLIST.md`
+  - Commit: `aaef5ba`
+
+### Verification Notes (this run)
+- Local build passed (`npm run build`).
+- Production smoke checks passed against `https://yourrentalrights-production.up.railway.app` via `npm run qa:smoke`:
+  - `GET /` -> `200`
+  - `GET /api/content/qa-smoke-test-key` -> `200` with fallback marker
+  - `GET /api/user` -> `401` (unauthenticated boundary confirmed)

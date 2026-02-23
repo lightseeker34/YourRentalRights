@@ -18,7 +18,7 @@ Status key: [ ] todo, [~] in progress, [x] done
 - [x] Image loading fallback polish (prevent transient placeholder swap)
 - [x] Incident timeline visual density tune for mobile + desktop parity
 - [x] Incident page: remove "Add Log" label and move action buttons closer to incident card
-- [ ] Add smoke-test checklist and run after each deploy
+- [x] Add smoke-test checklist and run after each deploy
 
 ## Process Rules
 1. Pick one item.
