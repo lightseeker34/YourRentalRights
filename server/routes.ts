@@ -9,6 +9,7 @@ import path from "path";
 import fs from "fs";
 import OpenAI from "openai";
 import { formatEvidenceContext, formatEvidenceTimeline, formatPhotoList, formatTimelineForPrompt, formatPhotoListForPrompt, buildUserContext, buildIncidentContext, computeTimelineHash } from "./ai-context";
+import { getFromR2, isR2Enabled, uploadToR2 } from "./r2";
 
 const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -45,7 +46,7 @@ const evidenceStorage = multer.diskStorage({
 });
 
 const uploadEvidence = multer({
-  storage: evidenceStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedMimes = [
@@ -71,7 +72,7 @@ const forumAttachmentStorage = multer.diskStorage({
 });
 
 const uploadForumAttachment = multer({
-  storage: forumAttachmentStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedMimes = [
@@ -380,13 +381,19 @@ export async function registerRoutes(
     if (incident.userId !== req.user!.id && !req.user!.isAdmin) return res.sendStatus(403);
     
     const isPhoto = req.file.mimetype.startsWith("image/");
-    const fileUrl = `/api/evidence/${req.file.filename}`;
-    
+    const r2Key = `evidence/${incidentId}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const upload = await uploadToR2({
+      key: r2Key,
+      body: req.file.buffer,
+      contentType: req.file.mimetype,
+    });
+    const fileUrl = upload.url;
+
     // Get category from query parameter (e.g., call_photo, text_photo, email_photo)
     const category = req.query.category as string | undefined;
     // Get parentLogId from form data (links file to specific log entry)
     const parentLogId = req.body.parentLogId ? parseInt(req.body.parentLogId) : undefined;
-    
+
     const log = await storage.addLog({
       incidentId,
       type: isPhoto ? "photo" : "document",
@@ -394,7 +401,7 @@ export async function registerRoutes(
       fileUrl,
       isAi: false,
       metadata: {
-        filename: req.file.filename,
+        r2Key,
         originalName: req.file.originalname,
         mimeType: req.file.mimetype,
         size: req.file.size,
@@ -407,25 +414,56 @@ export async function registerRoutes(
     res.status(201).json(log);
   });
 
-  // Serve evidence files - with ownership verification
+  // Serve evidence files from legacy local storage (backward compatibility)
   app.get("/api/evidence/:filename", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const filename = req.params.filename;
     const fileUrl = `/api/evidence/${filename}`;
-    
+
     // Find the log entry that references this file
     const log = await storage.getLogByFileUrl(fileUrl);
     if (!log) return res.sendStatus(404);
-    
+
     // Verify ownership of incident containing this evidence
     const incident = await storage.getIncident(log.incidentId);
     if (!incident) return res.sendStatus(404);
     if (incident.userId !== req.user!.id && !req.user!.isAdmin) return res.sendStatus(403);
-    
+
     const filePath = path.join(uploadDir, filename);
     if (!fs.existsSync(filePath)) return res.sendStatus(404);
     res.sendFile(filePath);
+  });
+
+  // Serve R2 objects through authenticated proxy when no public bucket domain is configured
+  app.get("/api/r2/*", requireAuth, async (req, res) => {
+    try {
+      if (!isR2Enabled()) return res.status(503).json({ error: "R2 not configured" });
+      const key = decodeURIComponent((req.params as any)[0] || "");
+      if (!key) return res.status(400).json({ error: "Missing key" });
+
+      const r2Obj = await getFromR2(key);
+      const body = r2Obj.Body;
+      if (!body) return res.sendStatus(404);
+
+      if (r2Obj.ContentType) {
+        res.setHeader("Content-Type", r2Obj.ContentType);
+      }
+
+      const stream = body as any;
+      if (typeof stream.pipe === "function") {
+        return stream.pipe(res);
+      }
+
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream as AsyncIterable<Buffer>) {
+        chunks.push(Buffer.from(chunk));
+      }
+      return res.send(Buffer.concat(chunks));
+    } catch (error) {
+      console.error("R2 read failed", error);
+      return res.sendStatus(404);
+    }
   });
 
   // --- AI Agent Endpoint ---
@@ -1108,10 +1146,18 @@ Provide your response in this exact JSON format:
     if (!files || files.length === 0) {
       return res.status(400).json({ error: "No files uploaded" });
     }
-    const attachments = files.map(file => ({
-      url: `/api/uploads/${file.filename}`,
-      name: file.originalname,
-      type: file.mimetype,
+    const attachments = await Promise.all(files.map(async (file) => {
+      const key = `forum/${req.user!.id}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+      const upload = await uploadToR2({
+        key,
+        body: file.buffer,
+        contentType: file.mimetype,
+      });
+      return {
+        url: upload.url,
+        name: file.originalname,
+        type: file.mimetype,
+      };
     }));
     res.json({ attachments });
   });
