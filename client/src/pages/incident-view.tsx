@@ -2539,21 +2539,23 @@ export default function IncidentView() {
                     const incidentPhotos = logs?.filter(l => l.type === 'photo' && (l.metadata as any)?.category === 'incident_photo') || [];
                     if (incidentPhotos.length === 0) return null;
                     return (
-                      <div className="ml-4 border-l-2 border-slate-200 pl-3 space-y-1">
+                      <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-0.5">
                         {incidentPhotos.map((photo) => (
-                          <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)}>
-                            <Card className="p-2 cursor-pointer hover:bg-slate-50 group relative">
-                              <div className="flex items-center gap-2">
-                                <img 
-                                  src={photo.fileUrl!} 
-                                  loading="lazy"
-                                  alt={photo.content}
-                                  className="w-6 h-6 object-cover rounded border border-slate-200"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs text-slate-500 truncate font-semibold">{photo.content}</div>
-                                  <div className="text-xs text-slate-400">{formatDateTime(photo.createdAt)}</div>
-                                </div>
+                          <ThumbnailWithDelete
+                            key={photo.id}
+                            onDelete={() => deleteMutation.mutate(photo.id)}
+                            onPreview={() => openPreview(photo)}
+                            className="w-10 h-10 overflow-hidden cursor-pointer rounded-md"
+                          >
+                            <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
+                              <img
+                                src={photo.fileUrl!}
+                                loading="lazy"
+                                alt={photo.content}
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <ImageIcon className="w-3 h-3 text-white" />
                               </div>
                             </Card>
                           </ThumbnailWithDelete>
