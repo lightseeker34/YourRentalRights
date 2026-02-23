@@ -1033,13 +1033,20 @@ Provide your response in this exact JSON format:
 
   // --- Content Management (for editable text) ---
   app.get("/api/content/:key", async (req, res) => {
-    const value = await storage.getSetting(`content_${req.params.key}`);
-    // Graceful fallback: avoid 404s for unset CMS keys so clients can safely use
-    // their component-level default copy without noisy error responses.
-    if (value === undefined) {
-      return res.json({ key: req.params.key, value: null, fallback: true });
+    try {
+      const value = await storage.getSetting(`content_${req.params.key}`);
+      // Graceful fallback: avoid 404s for unset CMS keys so clients can safely use
+      // their component-level default copy without noisy error responses.
+      if (value === undefined) {
+        return res.json({ key: req.params.key, value: null, fallback: true });
+      }
+      return res.json({ key: req.params.key, value, fallback: false });
+    } catch (error) {
+      // Hard fallback: if storage is temporarily unavailable, keep content reads
+      // non-fatal for clients and allow default copy to render.
+      console.error("Failed to load content key", req.params.key, error);
+      return res.json({ key: req.params.key, value: null, fallback: true, degraded: true });
     }
-    res.json({ key: req.params.key, value, fallback: false });
   });
 
   app.put("/api/content/:key", requireAdmin, async (req, res) => {
