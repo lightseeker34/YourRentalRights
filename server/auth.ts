@@ -19,7 +19,7 @@ async function comparePasswords(supplied: string, stored: string) {
   // Handle both : and . separators for backwards compatibility
   const separator = stored.includes(":") ? ":" : ".";
   const parts = stored.split(separator);
-  
+
   // Format is salt:hash (new) or hash.salt (old)
   let salt: string, hashed: string;
   if (separator === ":") {
@@ -27,25 +27,37 @@ async function comparePasswords(supplied: string, stored: string) {
   } else {
     [hashed, salt] = parts;
   }
-  
+
   if (!salt) {
     return false; // Invalid format
   }
-  
+
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
 export function setupAuth(app: Express) {
+  const isProd = app.get("env") === "production";
+
+  if (isProd && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "replit_session_secret",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProd,
+      maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days
+    },
   };
 
-  if (app.get("env") === "production") {
+  if (isProd) {
     app.set("trust proxy", 1);
   }
 
@@ -72,19 +84,30 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      const username = String(req.body?.username || "").trim();
+      const password = String(req.body?.password || "");
+
+      if (!username || username.length < 3) {
+        return res.status(400).send("Username must be at least 3 characters");
+      }
+      if (!password || password.length < 8) {
+        return res.status(400).send("Password must be at least 8 characters");
+      }
+
+      const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).send("Username already exists");
       }
 
-      const hashedPassword = await hashPassword(req.body.password);
-      
+      const hashedPassword = await hashPassword(password);
+
       // First user becomes admin automatically
       const userCount = await storage.getUserCount();
       const isFirstUser = userCount === 0;
-      
+
       const user = await storage.createUser({
         ...req.body,
+        username,
         password: hashedPassword,
         isAdmin: isFirstUser,
       });
@@ -94,6 +117,7 @@ export function setupAuth(app: Express) {
         res.status(201).json(user);
       });
     } catch (err) {
+      console.error("register failed:", err);
       next(err);
     }
   });

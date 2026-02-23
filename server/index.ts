@@ -3,6 +3,7 @@ import compression from "compression";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { pool } from "./db";
 
 const app = express();
 app.use(compression());
@@ -63,6 +64,20 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+
+  app.get("/healthz", async (_req, res) => {
+    try {
+      await pool.query("select 1");
+      return res.status(200).json({
+        ok: true,
+        uptimeSec: Math.floor(process.uptime()),
+        env: process.env.NODE_ENV || "development",
+      });
+    } catch (error) {
+      console.error("healthz db check failed:", error);
+      return res.status(503).json({ ok: false });
+    }
+  });
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
