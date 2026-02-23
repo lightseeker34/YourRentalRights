@@ -1916,7 +1916,7 @@ export default function IncidentView() {
       </div>
 
       {/* Add Log section */}
-      <div className="space-y-2 mt-4" data-testid="log-buttons-mobile">
+      <div className="space-y-2 mt-2" data-testid="log-buttons-mobile">
         <Button 
           variant="outline" 
           className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
@@ -2497,8 +2497,7 @@ export default function IncidentView() {
         </div>
 
         {/* Add Log section */}
-        <div className="space-y-2 mt-4" data-testid="log-buttons">
-          <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2">Add Log</h3>
+        <div className="space-y-2 mt-2" data-testid="log-buttons">
           <Button 
             variant="outline" 
             className="w-full justify-start gap-2 bg-[#4d5e700f] border-slate-300"
