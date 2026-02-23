@@ -32,6 +32,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -1040,6 +1041,49 @@ export default function IncidentView() {
     return format(new Date(date), "MMM d, yyyy  h:mm a");
   };
 
+  const ImageWithFallback = ({ src, alt, className }: { src: string; alt: string; className?: string }) => {
+    const [resolvedSrc, setResolvedSrc] = useState(src);
+    const [triedProxy, setTriedProxy] = useState(false);
+
+    useEffect(() => {
+      setResolvedSrc(src);
+      setTriedProxy(false);
+    }, [src]);
+
+    const toProxyUrl = (url: string) => {
+      try {
+        const u = new URL(url, window.location.origin);
+        const marker = "/evidence/";
+        const idx = u.pathname.indexOf(marker);
+        if (idx === -1) return null;
+        const key = u.pathname.slice(idx + 1);
+        return `/api/r2/${key}`;
+      } catch {
+        return null;
+      }
+    };
+
+    return (
+      <img
+        src={resolvedSrc}
+        loading="lazy"
+        alt={alt}
+        className={className}
+        onError={() => {
+          if (!triedProxy) {
+            const proxy = toProxyUrl(resolvedSrc);
+            if (proxy) {
+              setTriedProxy(true);
+              setResolvedSrc(proxy);
+              return;
+            }
+          }
+          setResolvedSrc('/favicon.png');
+        }}
+      />
+    );
+  };
+
   const LogEntryCard = ({ log, icon: Icon, color, clickable = false }: { log: IncidentLog; icon: any; color: string; clickable?: boolean }) => {
     // Only user chat messages get blue styling
     const isUserChat = (log.type === 'chat' && !log.isAi);
@@ -1060,7 +1104,7 @@ export default function IncidentView() {
       <Card 
         id={`log-entry-${log.id}`}
         key={log.id} 
-        className={`p-2 group transition-all duration-500 cursor-pointer ${
+        className={`p-1.5 group transition-all duration-500 cursor-pointer ${
           isUserChat 
             ? 'bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90' 
             : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
@@ -1079,7 +1123,7 @@ export default function IncidentView() {
         }}
       >
         {/* Header row: icon + label */}
-        <div className="flex items-center justify-between gap-1.5 mb-1">
+        <div className="flex items-center justify-between gap-1.5 mb-0.5">
           <div className="flex items-center gap-1.5 min-w-0">
             <Icon className={`w-3 h-3 ${color} shrink-0`} />
             <span className="font-medium text-slate-800 text-xs line-clamp-1">
@@ -1104,7 +1148,7 @@ export default function IncidentView() {
           </ReactMarkdown>
         </div>
         {/* Footer: date, severity badge, and actions */}
-        <div className="flex items-center justify-between mt-1">
+        <div className="flex items-center justify-between mt-0.5">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-slate-400">{formatDateTime(log.createdAt)}</span>
             {(() => {
@@ -1993,7 +2037,7 @@ export default function IncidentView() {
               const hasAttachments = incidentPhotos.length > 0 || incidentDocs.length > 0;
               if (!hasAttachments) return null;
               return (
-                <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-1">
+                <div className="ml-3 border-l-2 border-slate-200 pl-2 mt-0.5 flex flex-wrap gap-0.5">
                   {incidentPhotos.map((photo) => (
                     <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                       <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
@@ -2133,13 +2177,12 @@ export default function IncidentView() {
                         color={color}
                       />
                       {hasAttachments && (
-                        <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-1">
+                        <div className="ml-3 border-l-2 border-slate-200 pl-2 mt-0.5 flex flex-wrap gap-0.5">
                           {attachedPhotos.map((photo) => (
                             <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                               <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
-                                <img 
-                                  src={photo.fileUrl!} 
-                                  loading="lazy"
+                                <ImageWithFallback
+                                  src={photo.fileUrl!}
                                   alt={photo.content}
                                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                 />
@@ -2196,9 +2239,8 @@ export default function IncidentView() {
                             file.type === 'photo' ? (
                               <ThumbnailWithDelete key={file.id} onDelete={() => deleteMutation.mutate(file.id)} onPreview={() => openPreview(file)} className="aspect-square overflow-hidden cursor-pointer rounded-md">
                                 <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
-                                  <img 
-                                    src={file.fileUrl!} 
-                                    loading="lazy"
+                                  <ImageWithFallback
+                                    src={file.fileUrl!}
                                     alt={file.content}
                                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                   />
@@ -2286,7 +2328,7 @@ export default function IncidentView() {
       />
       {/* Edit Incident Dialog - rendered at root level to avoid mobile drawer conflicts */}
       <Dialog open={editIncidentOpen} onOpenChange={setEditIncidentOpen}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+        <DialogContent aria-describedby={undefined} className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
           <div className="space-y-4 pt-[8px] pb-[8px]">
             <Input 
               placeholder="Title"
@@ -2703,13 +2745,12 @@ export default function IncidentView() {
                           color={color}
                         />
                         {hasAttachments && (
-                          <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-1">
+                          <div className="ml-3 border-l-2 border-slate-200 pl-2 mt-0.5 flex flex-wrap gap-0.5">
                             {attachedPhotos.map((photo) => (
                             <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                               <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
-                                <img 
-                                  src={photo.fileUrl!} 
-                                  loading="lazy"
+                                <ImageWithFallback
+                                  src={photo.fileUrl!}
                                   alt={photo.content}
                                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                 />
@@ -2798,7 +2839,7 @@ export default function IncidentView() {
       </div>
       {/* Edit Log Dialog */}
       <Dialog open={editLogId !== null && !chatLogs.some(l => l.id === editLogId)} onOpenChange={(open) => { if (!open) { setEditLogId(null); setEditLogPhoto(null); setEditLogAttachments([]); setShowEditEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl py-[45px]">
+        <DialogContent aria-describedby={undefined} className="w-[90%] rounded-xl py-[45px]">
           <div className="space-y-4">
             <Textarea 
               value={editLogContent}
@@ -2983,7 +3024,7 @@ export default function IncidentView() {
       </Dialog>
       {/* Log Call Dialog */}
       <Dialog open={logCallOpen} onOpenChange={(open) => { setLogCallOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['call']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+        <DialogContent aria-describedby={undefined} className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
           <div className="space-y-4 pt-[8px] pb-[8px]">
             <div className="space-y-2">
               <Input 
@@ -3143,7 +3184,7 @@ export default function IncidentView() {
       </Dialog>
       {/* Log Text Dialog */}
       <Dialog open={logTextOpen} onOpenChange={(open) => { setLogTextOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['text']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+        <DialogContent aria-describedby={undefined} className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
           <div className="space-y-4 pt-[8px] pb-[8px]">
             <div className="space-y-2">
               <Input 
@@ -3303,7 +3344,7 @@ export default function IncidentView() {
       </Dialog>
       {/* Log Email Dialog */}
       <Dialog open={logEmailOpen} onOpenChange={(open) => { setLogEmailOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['email']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+        <DialogContent aria-describedby={undefined} className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
           <div className="space-y-4 pt-[8px] pb-[8px]">
             <div className="space-y-2">
               <Input 
@@ -3463,7 +3504,7 @@ export default function IncidentView() {
       </Dialog>
       {/* Log Service Request Dialog */}
       <Dialog open={logServiceOpen} onOpenChange={(open) => { setLogServiceOpen(open); if (open) { setLogSeverity(DEFAULT_SEVERITY_BY_TYPE['service']); } if (!open) { setLogPhotoFiles([]); setLogDocFiles([]); setLogTitle(""); setLogNotes(""); setLogSeverity('routine'); setShowLogEvidencePicker(false); } }}>
-        <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
+        <DialogContent aria-describedby={undefined} className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[35px] pb-[35px]">
           <div className="space-y-4 pt-[8px] pb-[8px]">
             <div className="space-y-2">
               <Input 
@@ -3623,16 +3664,16 @@ export default function IncidentView() {
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
       <Dialog open={previewUrl !== null} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent className="w-[90%] max-h-[90vh] rounded-xl">
+        <DialogContent aria-describedby={undefined} className="w-[90%] max-h-[90vh] rounded-xl">
           <DialogHeader>
             <DialogTitle className="pt-[10px] pb-[10px]">{previewName}</DialogTitle>
+            <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-center p-4">
             {previewType === 'image' ? (
-              <img 
-                src={previewUrl || ''} 
-                loading="lazy"
-                alt={previewName} 
+              <ImageWithFallback
+                src={previewUrl || ''}
+                alt={previewName}
                 className="max-w-full max-h-[70vh] object-contain rounded-xl"
               />
             ) : (
@@ -3653,12 +3694,13 @@ export default function IncidentView() {
       </Dialog>
       {/* AI Analysis Results Modal */}
       <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent aria-describedby={undefined} className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bot className="w-5 h-5" />
               AI Case Analysis
             </DialogTitle>
+            <DialogDescription className="sr-only">AI summary and recommendations for this incident.</DialogDescription>
           </DialogHeader>
           {analysisResult && (
             <div className="space-y-6 py-4">

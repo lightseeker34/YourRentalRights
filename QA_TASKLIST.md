@@ -12,12 +12,12 @@ Status key: [ ] todo, [~] in progress, [x] done
 ## QA Backlog (from earlier review + live testing)
 - [ ] Export unlock clarity: make requirements explicit in UI (checklist + counter)
 - [x] Incident vs Log terminology consistency pass (microcopy + labels)
-- [ ] Save confirmation/state refresh confidence pass (toasts + optimistic state)
-- [ ] Missing `/api/content/*` keys: seed defaults or return graceful fallbacks
-- [ ] Accessibility warnings in dialogs (`DialogTitle`/`Description`) cleanup
-- [ ] Image loading fallback polish (prevent transient placeholder swap)
-- [ ] Incident timeline visual density tune for mobile + desktop parity
-- [ ] Incident page: remove "Add Log" label and move action buttons closer to incident card
+- [x] Save confirmation/state refresh confidence pass (toasts + optimistic state)
+- [x] Missing `/api/content/*` keys: seed defaults or return graceful fallbacks
+- [x] Accessibility warnings in dialogs (`DialogTitle`/`Description`) cleanup
+- [x] Image loading fallback polish (prevent transient placeholder swap)
+- [x] Incident timeline visual density tune for mobile + desktop parity
+- [x] Incident page: remove "Add Log" label and move action buttons closer to incident card
 - [ ] Add smoke-test checklist and run after each deploy
 
 ## Process Rules

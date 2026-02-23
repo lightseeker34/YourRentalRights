@@ -38,5 +38,37 @@
 - Production verification blocked: no confirmed production URL/route is documented in repo for this environment, so live label checks couldn't be completed from this run.
 - Next step: open deployed incident page and dashboard in production after Railway deploy and verify updated labels ("Record Call/Text/Email/Service Request", "Save * Entry", and "Add New Incident").
 
+### Completed (this run)
+- Save confirmation/state refresh confidence pass: added optimistic updates + rollback for incident edits and entry edits, added explicit save-failure toasts, and surfaced "Saving..." button states during update requests.
+  - Commit: `184e222`
+
+### Verification Notes (this run)
+- Local build passed (`npm run build`).
+- Production verification blocked: no production URL/environment endpoint is documented in-repo, so I couldn’t directly confirm live behavior from this run.
+- Next step: open a production incident, edit incident details + one timeline entry, and confirm immediate optimistic UI refresh plus success/error toasts.
+
 ### Next Item
-- Save confirmation/state refresh confidence pass (toasts + optimistic state).
+- Accessibility warnings in dialogs (`DialogTitle`/`Description`) cleanup.
+
+### Completed (this run)
+- Missing `/api/content/*` keys: implemented graceful fallback responses for unset content keys so the API returns `200` with `{ value: null, fallback: true }` instead of `404`.
+  - Commit: `6306e4d`
+
+### Verification Notes (this run)
+- Local build passed (`npm run build`).
+- Production verified after deploy on `https://yourrentalrights-production.up.railway.app`:
+  - `GET /api/content/qa-missing-key-check` now returns HTTP `200` with `{"key":"qa-missing-key-check","value":null,"fallback":true}`.
+
+### Completed (manual run)
+- Accessibility + image fallback + timeline density pass on incident page:
+  - added dialog accessibility descriptions / explicit dialog-describedby handling
+  - added resilient `ImageWithFallback` retry path (`public URL` -> `/api/r2/...` proxy -> placeholder)
+  - tightened timeline spacing for better scan density (cards + attachment rail)
+  - kept previously requested "Add Log" removal/button proximity behavior in-place
+
+### Verification Notes (manual run)
+- Local build passed (`npm run build`).
+- Next step: quick production check on incident page for thumbnail/image fallback behavior and dialog warning noise.
+
+### Next Item
+- Add smoke-test checklist and run after each deploy.
