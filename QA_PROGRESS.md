@@ -99,3 +99,14 @@
   - `GET /api/content/qa-smoke-test-key` -> `500` (`{"message":"Internal Server Error"}`)
 - Blocker: production `/api/content/*` endpoint is currently erroring, preventing successful post-deploy verification for this run.
 - Next step: inspect Railway runtime logs for the failing route, fix server-side regression/config issue, redeploy, and rerun `npm run qa:smoke`.
+
+### Completed (this run)
+- Content API hardening follow-up: added a defensive try/catch around `GET /api/content/:key` so content reads degrade gracefully (`fallback: true`, `degraded: true`) instead of throwing 500 when settings storage is unavailable.
+  - Commit: `355ac58`
+
+### Verification Notes (this run)
+- Local build passed (`npm run build`).
+- Production verified via smoke check on `https://yourrentalrights-production.up.railway.app`:
+  - `GET /` -> `200`
+  - `GET /api/content/qa-smoke-test-key` -> `200`
+  - `GET /api/user` -> `401`
