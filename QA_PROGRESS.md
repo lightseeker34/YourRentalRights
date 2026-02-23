@@ -79,7 +79,7 @@
   - `script/smoke-test.sh` for repeatable checks
   - `npm run qa:smoke` script alias in `package.json`
   - Marked smoke-test backlog item complete in `QA_TASKLIST.md`
-  - Commit: `aaef5ba`
+  - Commit: `74fbba8`
 
 ### Verification Notes (this run)
 - Local build passed (`npm run build`).
