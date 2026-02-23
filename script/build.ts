@@ -1,13 +1,12 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, copyFile, mkdir } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
 const allowlist = [
   "@google/generative-ai",
   "axios",
-  "connect-pg-simple",
   "cors",
   "date-fns",
   "drizzle-orm",
@@ -59,6 +58,11 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // connect-pg-simple's createTableIfMissing reads ./table.sql relative to runtime bundle dir.
+  // Ensure that file exists in dist so Railway runtime can initialize sessions.
+  await mkdir("dist", { recursive: true });
+  await copyFile("node_modules/connect-pg-simple/table.sql", "dist/table.sql");
 }
 
 buildAll().catch((err) => {
