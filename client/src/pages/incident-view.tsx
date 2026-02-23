@@ -238,6 +238,34 @@ export default function IncidentView() {
     return 'AI Analysis';
   };
 
+  const remainingEvidence = Math.max(0, MIN_EVIDENCE_COUNT - evidenceCount);
+  const hasUnlockRequirements = hasExportedPdf && hasEnoughEvidence;
+
+  const AnalysisUnlockChecklist = () => (
+    <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] text-slate-600">
+      <p className="mb-1 font-semibold text-slate-700">AI Analysis unlock checklist</p>
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5">
+          {hasExportedPdf ? <Check className="h-3 w-3 text-green-600" /> : <Minus className="h-3 w-3 text-slate-400" />}
+          <span>Export case PDF once</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {hasEnoughEvidence ? <Check className="h-3 w-3 text-green-600" /> : <Minus className="h-3 w-3 text-slate-400" />}
+          <span>
+            Add evidence entries ({Math.min(evidenceCount, MIN_EVIDENCE_COUNT)}/{MIN_EVIDENCE_COUNT})
+            {!hasEnoughEvidence ? ` — ${remainingEvidence} more needed` : ''}
+          </span>
+        </div>
+      </div>
+      {hasReachedDailyLimit && (
+        <p className="mt-1 text-amber-700">Daily limit reached ({analysisUsageCount}/{ANALYSIS_DAILY_LIMIT}). Try again tomorrow.</p>
+      )}
+      {hasUnlockRequirements && !hasReachedDailyLimit && (
+        <p className="mt-1 text-green-700">Ready: AI analysis is unlocked.</p>
+      )}
+    </div>
+  );
+
   // Auto-focus chat input when no messages (shows blinking cursor)
   const chatLogsCount = logs?.filter(l => l.type === 'chat').length || 0;
   const shouldAutoFocus = chatLogsCount === 0;
@@ -1839,7 +1867,8 @@ export default function IncidentView() {
             {getAnalysisButtonLabel()}
           </Button>
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-2">{incident.title}</h2>
+        <AnalysisUnlockChecklist />
+        <h2 className="text-xl font-bold text-slate-900 mb-2 mt-3">{incident.title}</h2>
         <p className="text-sm text-slate-600 mb-2">{incident.description}</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 text-xs text-slate-400">
@@ -2421,7 +2450,8 @@ export default function IncidentView() {
               {getAnalysisButtonLabel()}
             </Button>
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">{incident.title}</h2>
+          <AnalysisUnlockChecklist />
+          <h2 className="text-xl font-bold text-slate-900 mb-2 mt-3">{incident.title}</h2>
           <p className="text-sm text-slate-600 mb-2">{incident.description}</p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1 text-xs text-slate-400">
