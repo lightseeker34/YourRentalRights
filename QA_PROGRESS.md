@@ -31,7 +31,7 @@
 
 ### Completed (this run)
 - Incident vs Log terminology consistency pass: standardized key UX labels from "Log" to clearer "Record/Entry" language across dashboard, incident view (mobile + desktop), and guided tour copy.
-  - Commit: `TBD`
+  - Commit: `487dc06`
 
 ### Verification Notes (this run)
 - Local build passed (`npm run build`).
