@@ -87,3 +87,15 @@
   - `GET /` -> `200`
   - `GET /api/content/qa-smoke-test-key` -> `200` with fallback marker
   - `GET /api/user` -> `401` (unauthenticated boundary confirmed)
+
+### Completed (this run)
+- Export unlock clarity follow-up: made AI Analysis button copy more explicit by including evidence progress counter while gated (e.g., `Need X more evidence (Y/3)`), and marked the export-unlock backlog item complete in `QA_TASKLIST.md`.
+  - Commit: `3bdf20a`
+
+### Verification Notes (this run)
+- Local build passed (`npm run build`).
+- Production verification failed via smoke check after push:
+  - `GET /` -> `200`
+  - `GET /api/content/qa-smoke-test-key` -> `500` (`{"message":"Internal Server Error"}`)
+- Blocker: production `/api/content/*` endpoint is currently erroring, preventing successful post-deploy verification for this run.
+- Next step: inspect Railway runtime logs for the failing route, fix server-side regression/config issue, redeploy, and rerun `npm run qa:smoke`.
