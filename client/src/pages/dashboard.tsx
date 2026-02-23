@@ -287,11 +287,31 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
       const res = await apiRequest("PATCH", `/api/incidents/${incident.id}`, data);
       return await res.json();
     },
+    onMutate: async (updatedIncident: { title: string; description: string }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/incidents"] });
+      const previousIncidents = queryClient.getQueryData<Incident[]>(["/api/incidents"]);
+
+      queryClient.setQueryData<Incident[]>(["/api/incidents"], (old) =>
+        old?.map((existingIncident) =>
+          existingIncident.id === incident.id
+            ? { ...existingIncident, ...updatedIncident }
+            : existingIncident
+        )
+      );
+
+      return { previousIncidents };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousIncidents) {
+        queryClient.setQueryData(["/api/incidents"], context.previousIncidents);
+      }
+      toast({ title: "Save Failed", description: "Could not save incident details.", variant: "destructive" });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
       setEditIncidentOpen(false);
       setEditingIncident(null);
-      toast({ title: "Updated", description: "Incident details updated." });
+      toast({ title: "Changes Saved", description: "Incident details updated." });
     },
   });
 
@@ -300,13 +320,29 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
       const res = await apiRequest("PATCH", `/api/logs/${logId}`, { title, content });
       return await res.json();
     },
+    onMutate: async ({ logId, title, content }) => {
+      await queryClient.cancelQueries({ queryKey: [`/api/incidents/${incident.id}/logs`] });
+      const previousLogs = queryClient.getQueryData<IncidentLog[]>([`/api/incidents/${incident.id}/logs`]);
+
+      queryClient.setQueryData<IncidentLog[]>([`/api/incidents/${incident.id}/logs`], (old) =>
+        old?.map((log) => (log.id === logId ? { ...log, title, content } : log))
+      );
+
+      return { previousLogs };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousLogs) {
+        queryClient.setQueryData([`/api/incidents/${incident.id}/logs`], context.previousLogs);
+      }
+      toast({ title: "Save Failed", description: "Could not save this entry.", variant: "destructive" });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/incidents/${incident.id}/logs`] });
       setOpen(false);
       setEditingLog(null);
       setEntryTitle("");
       setNote("");
-      toast({ title: "Updated", description: "Entry has been updated." });
+      toast({ title: "Changes Saved", description: "Entry has been updated." });
     },
   });
 
@@ -474,7 +510,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
               />
             </div>
             <Button type="submit" className="w-full" disabled={updateIncidentMutation.isPending}>
-              Save Changes
+              {updateIncidentMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </form>
         </DialogContent>
@@ -719,7 +755,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                   data-testid="btn-add-note"
                 >
-                  {editingLog ? "Save Changes" : "Add Note"}
+                  {updateLogMutation.isPending ? "Saving..." : editingLog ? "Save Changes" : "Add Note"}
                 </Button>
               </TabsContent>
               
@@ -781,7 +817,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                   data-testid="btn-log-call"
                 >
-                  {editingLog ? "Save Changes" : "Record Call"}
+                  {updateLogMutation.isPending ? "Saving..." : editingLog ? "Save Changes" : "Record Call"}
                 </Button>
               </TabsContent>
               
@@ -843,7 +879,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                   data-testid="btn-log-text"
                 >
-                  {editingLog ? "Save Changes" : "Record Text"}
+                  {updateLogMutation.isPending ? "Saving..." : editingLog ? "Save Changes" : "Record Text"}
                 </Button>
               </TabsContent>
               
@@ -905,7 +941,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                   data-testid="btn-log-email"
                 >
-                  {editingLog ? "Save Changes" : "Record Email"}
+                  {updateLogMutation.isPending ? "Saving..." : editingLog ? "Save Changes" : "Record Email"}
                 </Button>
               </TabsContent>
               
@@ -966,7 +1002,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   className="w-full" 
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                 >
-                  {editingLog ? "Save Changes" : "Add Photo Entry"}
+                  {updateLogMutation.isPending ? "Saving..." : editingLog ? "Save Changes" : "Add Photo Entry"}
                 </Button>
               </TabsContent>
             </Tabs>
