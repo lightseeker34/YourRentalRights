@@ -1034,10 +1034,12 @@ Provide your response in this exact JSON format:
   // --- Content Management (for editable text) ---
   app.get("/api/content/:key", async (req, res) => {
     const value = await storage.getSetting(`content_${req.params.key}`);
+    // Graceful fallback: avoid 404s for unset CMS keys so clients can safely use
+    // their component-level default copy without noisy error responses.
     if (value === undefined) {
-      return res.status(404).json({ error: "Content not found" });
+      return res.json({ key: req.params.key, value: null, fallback: true });
     }
-    res.json({ key: req.params.key, value });
+    res.json({ key: req.params.key, value, fallback: false });
   });
 
   app.put("/api/content/:key", requireAdmin, async (req, res) => {
