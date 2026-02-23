@@ -29,5 +29,14 @@
 - Local build passed (`npm run build`).
 - Pending prod visual verification after deploy completes.
 
+### Completed (this run)
+- Incident vs Log terminology consistency pass: standardized key UX labels from "Log" to clearer "Record/Entry" language across dashboard, incident view (mobile + desktop), and guided tour copy.
+  - Commit: `TBD`
+
+### Verification Notes (this run)
+- Local build passed (`npm run build`).
+- Production verification blocked: no confirmed production URL/route is documented in repo for this environment, so live label checks couldn't be completed from this run.
+- Next step: open deployed incident page and dashboard in production after Railway deploy and verify updated labels ("Record Call/Text/Email/Service Request", "Save * Entry", and "Add New Incident").
+
 ### Next Item
-- Incident vs Log terminology consistency pass (microcopy + labels).
+- Save confirmation/state refresh confidence pass (toasts + optimistic state).

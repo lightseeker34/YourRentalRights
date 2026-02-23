@@ -473,7 +473,7 @@ export default function IncidentView() {
       refetchIncident();
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
       setEditIncidentOpen(false);
-      toast({ title: "Updated", description: "Log details have been updated." });
+      toast({ title: "Updated", description: "Entry details have been updated." });
     },
   });
 
@@ -655,7 +655,7 @@ export default function IncidentView() {
       setEditLogId(null);
       setEditLogContent("");
       setEditLogSeverity('routine');
-      toast({ title: "Updated", description: "Log entry has been updated." });
+      toast({ title: "Updated", description: "Timeline entry has been updated." });
     },
   });
 
@@ -1923,7 +1923,7 @@ export default function IncidentView() {
           onClick={() => { setLogCallOpen(true); }}
         >
           <Phone className="w-4 h-4 text-green-500" />
-          <span>Log Call</span>
+          <span>Record Call</span>
         </Button>
         <Button 
           variant="outline" 
@@ -1931,7 +1931,7 @@ export default function IncidentView() {
           onClick={() => { setLogTextOpen(true); }}
         >
           <MessageSquare className="w-4 h-4 text-blue-400" />
-          <span>Log Text</span>
+          <span>Record Text</span>
         </Button>
         <Button 
           variant="outline" 
@@ -1939,7 +1939,7 @@ export default function IncidentView() {
           onClick={() => { setLogEmailOpen(true); }}
         >
           <Mail className="w-4 h-4 text-purple-400" />
-          <span>Log Email</span>
+          <span>Record Email</span>
         </Button>
         <Button 
           variant="outline" 
@@ -1947,7 +1947,7 @@ export default function IncidentView() {
           onClick={() => { setLogServiceOpen(true); }}
         >
           <Wrench className="w-4 h-4 text-orange-500" />
-          <span>Log Service Request</span>
+          <span>Record Service Request</span>
         </Button>
       </div>
 
@@ -2504,7 +2504,7 @@ export default function IncidentView() {
             onClick={() => setLogCallOpen(true)}
           >
             <Phone className="w-4 h-4 text-green-500" />
-            <span>Log Call</span>
+            <span>Record Call</span>
           </Button>
           <Button 
             variant="outline" 
@@ -2512,7 +2512,7 @@ export default function IncidentView() {
             onClick={() => setLogTextOpen(true)}
           >
             <MessageSquare className="w-4 h-4 text-blue-400" />
-            <span>Log Text</span>
+            <span>Record Text</span>
           </Button>
           <Button 
             variant="outline" 
@@ -2520,7 +2520,7 @@ export default function IncidentView() {
             onClick={() => setLogEmailOpen(true)}
           >
             <Mail className="w-4 h-4 text-purple-400" />
-            <span>Log Email</span>
+            <span>Record Email</span>
           </Button>
           <Button 
             variant="outline" 
@@ -2528,7 +2528,7 @@ export default function IncidentView() {
             onClick={() => setLogServiceOpen(true)}
           >
             <Wrench className="w-4 h-4 text-orange-500" />
-            <span>Log Service Request</span>
+            <span>Record Service Request</span>
           </Button>
         </div>
 
@@ -3136,7 +3136,7 @@ export default function IncidentView() {
               className="w-full"
               disabled={createLogWithPhotoMutation.isPending}
             >
-              Save Call Log
+              Save Call Entry
             </Button>
           </div>
         </DialogContent>
@@ -3296,7 +3296,7 @@ export default function IncidentView() {
               className="w-full"
               disabled={createLogWithPhotoMutation.isPending}
             >
-              Save Text Log
+              Save Text Entry
             </Button>
           </div>
         </DialogContent>
@@ -3456,7 +3456,7 @@ export default function IncidentView() {
               className="w-full"
               disabled={createLogWithPhotoMutation.isPending}
             >
-              Save Email Log
+              Save Email Entry
             </Button>
           </div>
         </DialogContent>

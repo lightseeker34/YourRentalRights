@@ -781,7 +781,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                   data-testid="btn-log-call"
                 >
-                  {editingLog ? "Save Changes" : "Log Call"}
+                  {editingLog ? "Save Changes" : "Record Call"}
                 </Button>
               </TabsContent>
               
@@ -843,7 +843,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                   data-testid="btn-log-text"
                 >
-                  {editingLog ? "Save Changes" : "Log Text"}
+                  {editingLog ? "Save Changes" : "Record Text"}
                 </Button>
               </TabsContent>
               
@@ -905,7 +905,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                   disabled={createLogWithPhotoMutation.isPending || updateLogMutation.isPending}
                   data-testid="btn-log-email"
                 >
-                  {editingLog ? "Save Changes" : "Log Email"}
+                  {editingLog ? "Save Changes" : "Record Email"}
                 </Button>
               </TabsContent>
               
@@ -1149,7 +1149,7 @@ export default function Dashboard() {
       if (context?.previousIncidents) {
         queryClient.setQueryData(["/api/incidents"], context.previousIncidents);
       }
-      toast({ title: "Error", description: "Failed to create log. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to create incident. Please try again.", variant: "destructive" });
     },
     onSuccess: ({ uploadFailures }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
@@ -1182,7 +1182,7 @@ export default function Dashboard() {
               className="bg-slate-900 hover:bg-slate-800 text-center font-normal px-6 w-full sm:w-auto" 
               data-testid="add-new-log-button"
             >
-              {incidents && incidents.length > 0 ? 'Add New Log' : 'Create First Log'}
+              {incidents && incidents.length > 0 ? 'Add New Incident' : 'Create First Incident'}
             </Button>
           </DialogTrigger>
           <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[45px] pb-[45px]">

@@ -26,7 +26,7 @@ const ALL_TOUR_STEPS: TourStep[] = [
   {
     page: "/dashboard",
     target: '[data-testid="add-new-log-button"]',
-    title: "Create Your First Log",
+    title: "Create Your First Incident",
     content: "Click here to start documenting an issue with your landlord. Give it a clear title like 'Broken Heater' or 'Mold in Bathroom'. Each entry becomes your evidence file.",
     placement: "bottom",
   },
@@ -82,7 +82,7 @@ const ALL_TOUR_STEPS: TourStep[] = [
   {
     page: "/dashboard/incident",
     target: '[data-testid="log-buttons"]',
-    title: "Log Your Interactions",
+    title: "Record Your Interactions",
     content: "Record every call, text, email, or service request with your landlord or property manager. Each log is timestamped and you can attach photos or documents as proof. This builds your evidence timeline.",
     placement: "right",
     mobileTarget: '[data-testid="log-buttons-mobile"]',

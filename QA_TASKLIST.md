@@ -11,7 +11,7 @@ Status key: [ ] todo, [~] in progress, [x] done
 
 ## QA Backlog (from earlier review + live testing)
 - [ ] Export unlock clarity: make requirements explicit in UI (checklist + counter)
-- [ ] Incident vs Log terminology consistency pass (microcopy + labels)
+- [x] Incident vs Log terminology consistency pass (microcopy + labels)
 - [ ] Save confirmation/state refresh confidence pass (toasts + optimistic state)
 - [ ] Missing `/api/content/*` keys: seed defaults or return graceful fallbacks
 - [ ] Accessibility warnings in dialogs (`DialogTitle`/`Description`) cleanup
