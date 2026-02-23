@@ -436,10 +436,10 @@ export async function registerRoutes(
   });
 
   // Serve R2 objects through authenticated proxy when no public bucket domain is configured
-  app.get("/api/r2/:key", requireAuth, async (req, res) => {
+  app.get(/^\/api\/r2\/(.+)$/, requireAuth, async (req, res) => {
     try {
       if (!isR2Enabled()) return res.status(503).json({ error: "R2 not configured" });
-      const key = decodeURIComponent(String(req.params.key || ""));
+      const key = decodeURIComponent(String((req.params as any)[0] || ""));
       if (!key) return res.status(400).json({ error: "Missing key" });
 
       const r2Obj = await getFromR2(key);
