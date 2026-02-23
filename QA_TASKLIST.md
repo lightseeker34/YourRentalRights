@@ -10,7 +10,7 @@ Status key: [ ] todo, [~] in progress, [x] done
 - [x] Timeline icon parity fix for Service Request (wrench icon)
 
 ## QA Backlog (from earlier review + live testing)
-- [ ] Export unlock clarity: make requirements explicit in UI (checklist + counter)
+- [x] Export unlock clarity: make requirements explicit in UI (checklist + counter)
 - [x] Incident vs Log terminology consistency pass (microcopy + labels)
 - [x] Save confirmation/state refresh confidence pass (toasts + optimistic state)
 - [x] Missing `/api/content/*` keys: seed defaults or return graceful fallbacks

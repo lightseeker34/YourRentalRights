@@ -235,7 +235,10 @@ export default function IncidentView() {
   const getAnalysisButtonLabel = () => {
     if (isAnalyzing) return 'Analyzing...';
     if (hasReachedDailyLimit) return 'Limit reached';
-    if (!hasEnoughEvidence) return `Need ${MIN_EVIDENCE_COUNT - evidenceCount} more entries`;
+    if (!hasEnoughEvidence) {
+      const remaining = MIN_EVIDENCE_COUNT - evidenceCount;
+      return `Need ${remaining} more evidence (${Math.max(0, evidenceCount)}/${MIN_EVIDENCE_COUNT})`;
+    }
     return 'AI Analysis';
   };
 
