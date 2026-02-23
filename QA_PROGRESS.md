@@ -18,7 +18,8 @@
 
 ### Verification Notes (this run)
 - Local build passed (`npm run build`).
-- Production verification: pending deploy.
+- Production verification blocked: production URL / Railway environment endpoint is not documented in repo, so I couldn't directly confirm the new checklist text in live UI from this run.
+- Next step: open the known production incident page after deploy and confirm "AI Analysis unlock checklist" plus evidence counter render in sidebar (mobile + desktop).
 
 ### Next Item
 - Incident vs Log terminology consistency pass (microcopy + labels).
