@@ -114,5 +114,11 @@
 ### Blocked (this run)
 - No open `[ ]` QA tasks remain in `QA_TASKLIST.md`, so there is no queued hardening item to implement for this hourly run.
 
+### Verification Notes (this run)
+- Production health re-checked via `npm run qa:smoke` on `https://yourrentalrights-production.up.railway.app`:
+  - `GET /` -> `200`
+  - `GET /api/content/qa-smoke-test-key` -> `200`
+  - `GET /api/user` -> `401`
+
 ### Next Step
 - Add/prioritize the next QA hardening task in `QA_TASKLIST.md` (or confirm a new target area), then continue one-task-per-run execution.
