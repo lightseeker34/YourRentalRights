@@ -1093,7 +1093,7 @@ export default function IncidentView() {
                 size="icon" 
                 className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700"
                 onClick={() => {
-                  const typeLabel = log.type === 'call' ? 'Call log' : log.type === 'text' ? 'Text log' : 'Email log';
+                  const typeLabel = log.type === 'call' ? 'Call log' : log.type === 'text' ? 'Text log' : log.type === 'email' ? 'Email log' : 'Service request log';
                   chatInputRef.current?.setInput(`Add this to our discussion: [${typeLabel}] ${log.content}`);
                   setTimeout(() => {
                     chatInputRef.current?.focus();
@@ -2084,6 +2084,9 @@ export default function IncidentView() {
                   } else if (log.type === 'photo') {
                     icon = ImageIcon;
                     color = "text-blue-500";
+                  } else if (log.type === 'service') {
+                    icon = Wrench;
+                    color = "text-orange-500";
                   } else if (log.type === 'note') {
                     icon = FileText;
                     color = "text-slate-500";
@@ -2651,6 +2654,9 @@ export default function IncidentView() {
                     } else if (log.type === 'photo') {
                       icon = ImageIcon;
                       color = "text-blue-500";
+                    } else if (log.type === 'service') {
+                      icon = Wrench;
+                      color = "text-orange-500";
                     } else if (log.type === 'note') {
                       icon = FileText;
                       color = "text-slate-500";
