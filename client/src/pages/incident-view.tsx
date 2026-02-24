@@ -1141,7 +1141,7 @@ export default function IncidentView() {
   // Skeleton loading state
   if (!incident) {
     return (
-      <div className="flex w-screen max-w-[100vw] overflow-x-hidden flex-col md:flex-row h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50">
+      <div className="flex w-full max-w-full box-border overflow-x-hidden flex-col md:flex-row h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50">
         {/* Sidebar skeleton */}
         <div className="hidden md:flex md:flex-col md:w-80 bg-white border-r border-slate-200 p-4">
           <div className="h-6 w-48 bg-slate-200 rounded animate-pulse mb-2" />
@@ -2427,7 +2427,7 @@ export default function IncidentView() {
 
   return (
     <div 
-      className="flex w-screen max-w-[100vw] overflow-x-hidden h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50"
+      className="flex w-full max-w-full box-border overflow-x-hidden h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -3992,13 +3992,19 @@ export default function IncidentView() {
           <div className="max-w-3xl mx-auto space-y-6 pb-28 md:pb-6">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-6 mb-6" data-testid="chat-empty-state">
-                <div className="flex flex-col items-center select-none w-full max-w-[calc(100vw-2rem)] px-2 overflow-hidden" data-testid="ai-assistant-placeholder">
+                <div className="md:hidden w-full max-w-[calc(100vw-2rem)] px-2" data-testid="ai-assistant-placeholder">
+                  <div className="bg-white/90 border border-slate-200/60 rounded-2xl px-5 py-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center">
+                    <div className="text-2xl font-light text-slate-300 leading-tight">Your Assistant</div>
+                    <div className="mt-3 text-slate-400 text-base leading-relaxed">Ask a question about your case to get started.</div>
+                  </div>
+                </div>
+                <div className="hidden md:flex flex-col items-center select-none w-full max-w-[calc(100vw-2rem)] px-2 overflow-hidden" data-testid="ai-assistant-placeholder-desktop">
                   <div className="bg-white/90 border border-slate-200/60 rounded-3xl px-5 sm:px-8 py-7 sm:py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full max-w-full overflow-hidden flex flex-col items-center">
                     <span className="block text-4xl sm:text-7xl font-light text-slate-300 leading-[0.95] text-center tracking-tight">Your</span>
                     <span className="block text-4xl sm:text-7xl font-light text-slate-300 leading-[0.95] text-center tracking-tight mt-2 mb-2">Assistant</span>
                   </div>
                   <div className="mt-6 w-full max-w-[340px]">
-                    <div className="bg-white/70 border border-slate-200/50 rounded-2xl px-6 py-4 shadow-[0_4px_15px_rgb(0,0,0,0.02)] pt-[1px] pb-[1px]">
+                    <div className="bg-white/70 border border-slate-200/50 rounded-2xl px-6 py-4 shadow-[0_4px_15px_rgb(0,0,0,0.02)]">
                       <span className="text-slate-400 font-light text-[18px] text-center block leading-relaxed">Ask a question about your case to get started.</span>
                     </div>
                   </div>
