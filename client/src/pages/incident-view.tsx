@@ -4050,7 +4050,7 @@ export default function IncidentView() {
             )}
             {chatLogs.map((log) => (
               <div id={`chat-entry-${log.id}`} key={log.id} className={`flex min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-[calc(100%-3.5rem)] md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
@@ -4339,7 +4339,7 @@ export default function IncidentView() {
                   )}
                   {editLogId !== log.id && (
                     <>
-                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 overflow-hidden mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 [overflow-wrap:anywhere] ${
+                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 [overflow-wrap:anywhere] ${
                                 log.isAi 
                                   ? "bg-transparent text-slate-700" 
                                   : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words"
