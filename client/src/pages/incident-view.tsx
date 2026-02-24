@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download, FolderUp, AlertTriangle, Info, Minus, Wrench, Menu } from "lucide-react";
+import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download, FolderUp, AlertTriangle, Info, Minus, Wrench, Menu, Home, LayoutDashboard, LogOut, LogIn, Settings } from "lucide-react";
 import jsPDF from "jspdf";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -37,12 +37,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 export default function IncidentView() {
   const [match, params] = useRoute("/dashboard/incident/:id");
   const id = params?.id;
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -2581,7 +2581,7 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Mobile top bar with global app hamburger */}
-      <div className="fixed top-0 left-0 right-0 h-14 z-30 md:hidden flex items-center justify-end px-3 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200">
+      <div className="fixed top-0 left-0 right-0 h-14 z-30 md:hidden flex items-center justify-end px-3 bg-slate-50/95 backdrop-blur-sm">
         <Button
           variant="ghost"
           size="icon"
@@ -2595,15 +2595,30 @@ export default function IncidentView() {
       </div>
 
       <Sheet open={globalMenuOpen} onOpenChange={setGlobalMenuOpen}>
-        <SheetContent side="right" className="w-[300px]">
-          <SheetTitle className="text-left font-bold text-slate-900 mt-4 mb-4">Menu</SheetTitle>
-          <div className="flex flex-col gap-2">
-            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/dashboard'); }}>Dashboard</Button>
-            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/resources'); }}>Resources</Button>
-            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/forum'); }}>Community</Button>
-            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/profile'); }}>Account</Button>
-            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/'); }}>Home</Button>
-          </div>
+        <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+          <SheetTitle className="text-left font-bold text-slate-900 mt-4 mb-2">Menu</SheetTitle>
+          <SheetDescription className="text-left mb-6 text-slate-500">
+            Navigate our services and resources.
+          </SheetDescription>
+          <nav className="flex flex-col gap-2">
+            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/'); }}><Home className="w-5 h-5" />Home</button>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/about'); }}><Info className="w-5 h-5" />About Us</button>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/resources'); }}><FileText className="w-5 h-5" />Resources</button>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/forum'); }}><MessageSquare className="w-5 h-5" />Community</button>
+            <div className="h-px bg-slate-100 my-2" />
+            {user ? (
+              <>
+                <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/dashboard'); }}><LayoutDashboard className="w-5 h-5" />Dashboard</button>
+                <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/profile'); }}><User className="w-5 h-5" />Account</button>
+                {user.isAdmin && (
+                  <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/admin'); }}><Settings className="w-5 h-5" />Admin</button>
+                )}
+                <button className="flex w-full items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-red-50 hover:text-red-600 text-left" onClick={() => { logoutMutation.mutate(); setGlobalMenuOpen(false); }}><LogOut className="w-5 h-5" />Logout</button>
+              </>
+            ) : (
+              <button className="flex w-full items-center gap-3 px-4 py-3 rounded-md transition-colors bg-slate-900 text-white font-semibold hover:bg-slate-800 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/auth'); }}><LogIn className="w-5 h-5" />Login / Register</button>
+            )}
+          </nav>
         </SheetContent>
       </Sheet>
       {/* Mobile drawer overlay */}
