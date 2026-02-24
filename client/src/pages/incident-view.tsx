@@ -83,6 +83,7 @@ export default function IncidentView() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'document'>('image');
   const [previewName, setPreviewName] = useState("");
+  const [previewIsFullscreen, setPreviewIsFullscreen] = useState(false);
   
   // PDF Export state
   const [isExporting, setIsExporting] = useState(false);
@@ -283,6 +284,12 @@ export default function IncidentView() {
         chatInputRef.current?.focus();
       }, 500);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => setPreviewIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
   const sendMutation = useMutation({
@@ -3849,7 +3856,7 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
-      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); } }}>
+      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); setPreviewIsFullscreen(false); } }}>
         <DialogContent
           aria-describedby={undefined}
           className={previewType === 'image' ? "w-[98vw] max-w-none h-[96vh] max-h-[96vh] rounded-xl mx-auto p-1" : "w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto"}
@@ -3860,12 +3867,13 @@ export default function IncidentView() {
               <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
             </DialogHeader>
           )}
-          <div className={previewType === 'image' ? "flex items-center justify-center pt-12 px-1 pb-1 w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
+          <div className={previewType === 'image' ? "flex items-center justify-center pt-16 px-1 pb-1 w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
             {previewType === 'image' ? (
               <button
                 type="button"
-                className="flex items-center justify-center w-full h-full"
+                className={`flex items-center justify-center w-full h-full ${previewIsFullscreen ? 'cursor-default' : 'cursor-zoom-in'}`}
                 onClick={(e) => {
+                  if (previewIsFullscreen) return;
                   const el = e.currentTarget;
                   if (!document.fullscreenElement) {
                     el.requestFullscreen?.();
@@ -3875,7 +3883,7 @@ export default function IncidentView() {
                 <ImageWithFallback
                   src={previewUrl || ''}
                   alt={previewName}
-                  className="block mx-auto h-auto max-w-full max-h-[88vh] object-contain rounded-lg"
+                  className="block mx-auto h-auto max-w-full max-h-[88vh] object-contain"
                 />
               </button>
             ) : (
