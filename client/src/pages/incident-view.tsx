@@ -1141,7 +1141,7 @@ export default function IncidentView() {
   // Skeleton loading state
   if (!incident) {
     return (
-      <div className="flex flex-col md:flex-row h-[calc(100dvh-64px)] bg-slate-50">
+      <div className="flex w-full max-w-full overflow-x-hidden flex-col md:flex-row h-[calc(100dvh-64px)] bg-slate-50">
         {/* Sidebar skeleton */}
         <div className="hidden md:flex md:flex-col md:w-80 bg-white border-r border-slate-200 p-4">
           <div className="h-6 w-48 bg-slate-200 rounded animate-pulse mb-2" />
@@ -2427,7 +2427,7 @@ export default function IncidentView() {
 
   return (
     <div 
-      className="flex h-[calc(100dvh-64px)] bg-slate-50"
+      className="flex w-full max-w-full overflow-x-hidden h-[calc(100dvh-64px)] bg-slate-50"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -3987,8 +3987,8 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        <ScrollArea ref={scrollRef} className="relative overflow-hidden flex-1 p-4 bg-slate-50 pt-[0px] pb-[0px]">
+      <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col">
+        <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pt-[0px] pb-[0px]">
           <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-[calc(100dvh-280px)] bg-gradient-to-b from-slate-50 to-slate-100/50 pt-[0px] pb-[0px] overflow-hidden mt-[50px] mb-[50px]" data-testid="chat-empty-state">

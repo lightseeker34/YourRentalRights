@@ -42,7 +42,7 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
   ];
 
   return (
-    <div className="min-h-[100dvh] flex flex-col font-sans text-slate-900">
+    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden flex flex-col font-sans text-slate-900">
       {/* News Ticker */}
       {!shouldHideTicker && (
         <div className="ticker-wrap h-[46px] flex items-center z-50 relative shadow-md overflow-hidden">
@@ -230,7 +230,7 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
         </div>
       </header>
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative z-10 overflow-x-hidden">
+      <main className="flex-1 w-full max-w-full flex flex-col relative z-10 overflow-x-hidden">
         <div className="fixed top-[20%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(80vh,95vw)] h-[min(80vh,95vw)] bg-[radial-gradient(circle,rgba(203,213,225,0.4)_0%,rgba(241,245,249,0)_70%)] -z-10 pointer-events-none" />
         {children}
       </main>
