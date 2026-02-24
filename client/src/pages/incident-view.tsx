@@ -234,21 +234,17 @@ export default function IncidentView() {
   const evidenceCount = useMemo(() => logs?.filter(l => evidenceTypes.includes(l.type)).length || 0, [logs]);
   const hasEnoughEvidence = evidenceCount >= MIN_EVIDENCE_COUNT;
   const hasReachedDailyLimit = analysisUsageCount >= ANALYSIS_DAILY_LIMIT;
-  const canRunAnalysis = hasExportedPdf && hasEnoughEvidence && !hasReachedDailyLimit && !isAnalyzing;
+  const canRunAnalysis = hasEnoughEvidence && !hasReachedDailyLimit && !isAnalyzing;
 
   const getAnalysisButtonLabel = () => 'AI Analysis';
 
   const remainingEvidence = Math.max(0, MIN_EVIDENCE_COUNT - evidenceCount);
-  const hasUnlockRequirements = hasExportedPdf && hasEnoughEvidence;
+  const hasUnlockRequirements = hasEnoughEvidence;
 
   const AnalysisUnlockChecklist = () => (
     <div className="rounded-md border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] text-slate-600">
       <p className="mb-1 font-semibold text-slate-700">AI Analysis unlock checklist</p>
       <div className="space-y-1">
-        <div className="flex items-center gap-1.5">
-          {hasExportedPdf ? <Check className="h-3 w-3 text-green-600" /> : <Minus className="h-3 w-3 text-slate-400" />}
-          <span>Export case PDF once</span>
-        </div>
         <div className="flex items-center gap-1.5">
           {hasEnoughEvidence ? <Check className="h-3 w-3 text-green-600" /> : <Minus className="h-3 w-3 text-slate-400" />}
           <span>
@@ -3859,13 +3855,27 @@ export default function IncidentView() {
             <DialogTitle className="pt-[10px] pb-[10px]">{previewName}</DialogTitle>
             <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-center p-4 w-full">
+          <div className="flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto">
             {previewType === 'image' ? (
-              <ImageWithFallback
-                src={previewUrl || ''}
-                alt={previewName}
-                className="block mx-auto max-w-full max-h-[70vh] object-contain rounded-xl"
-              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  const el = e.currentTarget;
+                  if (!document.fullscreenElement) {
+                    el.requestFullscreen?.();
+                  } else {
+                    document.exitFullscreen?.();
+                  }
+                }}
+                className="cursor-zoom-in"
+                title="Tap to view fullscreen"
+              >
+                <ImageWithFallback
+                  src={previewUrl || ''}
+                  alt={previewName}
+                  className="block mx-auto max-w-full max-h-[75vh] h-auto object-contain rounded-xl"
+                />
+              </button>
             ) : (
               <div className="flex flex-col items-center gap-4">
                 <Paperclip className="w-16 h-16 text-slate-400" />
