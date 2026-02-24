@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { Incident } from "@shared/schema";
 import { QueryClient } from "@tanstack/react-query";
+export type AppToast = (...args: any[]) => unknown;
 
 export interface AnalysisResult {
   summary: string;
@@ -19,7 +20,7 @@ export interface SaveAnalysisPdfParams {
   analysisResult: AnalysisResult;
   id: string;
   setIsSavingAnalysisPdf: (v: boolean) => void;
-  toast: (opts: { title: string; description?: string; variant?: string }) => void;
+  toast: AppToast;
   queryClient: QueryClient;
 }
 

@@ -27,7 +27,7 @@ interface LogEntryCardProps {
   highlightedLogId: number | null;
   onSetHighlightedLogId: (id: number | null) => void;
   openPreview: (log: IncidentLog) => void;
-  chatInputRef: React.RefObject<ChatInputHandle>;
+  chatInputRef: React.RefObject<ChatInputHandle | null>;
   onEdit: (log: IncidentLog) => void;
   onDelete: (logId: number) => void;
 }

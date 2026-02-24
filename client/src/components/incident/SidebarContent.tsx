@@ -52,7 +52,7 @@ export interface SidebarContentProps {
   analysisUsageCount: number;
   ANALYSIS_DAILY_LIMIT: number;
   MIN_EVIDENCE_COUNT: number;
-  chatInputRef: React.RefObject<ChatInputHandle>;
+  chatInputRef: React.RefObject<ChatInputHandle | null>;
   onToggleStatus: () => void;
   toggleStatusPending: boolean;
   onExportPdf: () => void;

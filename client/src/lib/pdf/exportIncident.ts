@@ -1,13 +1,14 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import { Incident, IncidentLog } from "@shared/schema";
+import type { AppToast } from "./exportAnalysis";
 
 export interface ExportIncidentParams {
   incident: Incident;
   logs: IncidentLog[];
   setIsExporting: (v: boolean) => void;
   setHasExportedPdf: (v: boolean) => void;
-  toast: (opts: { title: string; description?: string; variant?: string }) => void;
+  toast: AppToast;
   trackPdfExport: () => Promise<void>;
 }
 
