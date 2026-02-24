@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Gavel, Camera, MessageSquare, AlertTriangle, CheckCircle, FolderOpen, Download, X } from "lucide-react";
+import { FileText, Gavel, Camera, MessageSquare, AlertTriangle, CheckCircle } from "lucide-react";
 import { EditableText } from "@/components/editable-text";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
@@ -90,51 +90,55 @@ export default function Resources() {
   const [selectedTemplate, setSelectedTemplate] = useState<typeof caseTemplates[0] | null>(null);
   const resources = [
     {
-      title: "Document Maintenance",
-      description: "How to properly log maintenance issues so they hold up in court.",
+      id: "rights-playbook",
+      title: "Tenant Rights Playbook",
+      description: "Know what landlords must do, what they can’t do, and how to document violations in ways that hold up.",
       icon: Gavel,
       category: "Guide",
       items: [
-        "Take photos immediately when an issue arises",
-        "Use a timestamp app for all photos",
-        "Submit requests in writing (email or portal), never just phone calls",
-        "Keep a log of all interactions with dates and times"
+        "Habitability standards and repair obligations",
+        "Entry, notice, and anti-retaliation protections",
+        "Lease terms that conflict with tenant law",
+        "When to escalate to code enforcement or legal aid"
       ]
     },
     {
-      title: "Communication Log",
-      description: "Templates and best practices for talking to property managers.",
-      icon: MessageSquare,
+      id: "case-templates",
+      title: "Pre-Built Case Templates",
+      description: "Start from proven structures for mold, leaks, pests, unsafe conditions, and ignored repairs.",
+      icon: FileText,
       category: "Template",
       items: [
-        "First Notice of Repair Needed",
-        "Follow-up on Unanswered Request (48hrs)",
-        "Notice of Intent to Withhold Rent (Consult Lawyer First)",
-        "Security Deposit Dispute Letter"
+        "Issue-specific timeline prompts",
+        "Evidence checklist per case type",
+        "Communication scripts by stage",
+        `Includes ${caseTemplates.length} ready-to-use templates`
       ]
     },
     {
-      title: "Evidence Collection",
-      description: "What counts as proof? Ensure you have what you need.",
+      id: "evidence-collection",
+      title: "Evidence Collection System",
+      description: "Build a court-ready record of landlord negligence with timestamped photos, service requests, and communication logs.",
       icon: Camera,
       category: "Checklist",
       items: [
-        "Move-in/Move-out Inspection Report",
-        "Copies of all lease agreements",
-        "Screenshots of text messages",
-        "Receipts for any repairs you paid for yourself"
+        "Capture photos with context (what, where, when)",
+        "Tie each file to a call, text, email, or service request",
+        "Preserve chronological timeline for legal review",
+        "Export organized evidence packets for complaints or counsel"
       ]
     },
     {
-      title: "Red Flags",
-      description: "Warning signs that your landlord might be acting illegally.",
+      id: "tenant-strategy",
+      title: "Tenant Strategy Library",
+      description: "Practical tactics to increase compliance, reduce delays, and strengthen your position before legal action.",
       icon: AlertTriangle,
       category: "Education",
       items: [
-        "Asking for cash-only payments",
-        "Refusing to provide receipts",
-        "Entering without 24-hour notice (except emergencies)",
-        "Retaliation threats for requesting repairs"
+        "How to write high-leverage service requests",
+        "What gets faster landlord response",
+        "Mistakes that weaken otherwise strong cases",
+        "Working effectively with inspectors and advocates"
       ]
     }
   ];
@@ -179,76 +183,30 @@ export default function Resources() {
                   </li>
                 ))}
               </ul>
-              <Button variant="outline" className="w-full mt-6 border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-slate-600">
-                View Details
-              </Button>
+              {res.id === "case-templates" ? (
+                <Button
+                  variant="default"
+                  className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    if (!user) {
+                      navigate("/auth");
+                    } else {
+                      setShowTemplates(true);
+                    }
+                  }}
+                  data-testid="button-view-templates"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  {user ? "View All Templates" : "Sign In to View Templates"}
+                </Button>
+              ) : (
+                <Button variant="outline" className="w-full mt-6 border-slate-200 hover:bg-slate-50 hover:text-slate-900 text-slate-600">
+                  View Details
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      {/* Case Templates Section */}
-      <div className="mt-16">
-        <div className="flex flex-col items-center mb-8 space-y-4">
-          <EditableText
-            contentKey="templates-title"
-            defaultValue="Case Templates"
-            as="h2"
-            className="text-2xl md:text-3xl font-bold text-slate-900"
-          />
-          <EditableText
-            contentKey="templates-subtitle"
-            defaultValue="Pre-built case structures to help you document common tenant issues effectively."
-            as="p"
-            className="text-lg text-slate-600 max-w-xl text-center"
-          />
-        </div>
-        
-        <Card className="glass-card hover:shadow-lg transition-all duration-300 border-slate-200 max-w-2xl mx-auto">
-          <CardHeader>
-            <div className="flex justify-between items-start mb-2">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <FolderOpen className="w-6 h-6 text-blue-700" />
-              </div>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
-                Templates
-              </Badge>
-            </div>
-            <CardTitle className="text-xl font-bold text-slate-900">Pre-built Case Templates</CardTitle>
-            <CardDescription className="text-slate-500 text-base">
-              Start documenting your case with guided templates for common tenant issues.
-              Each template includes step-by-step guidance and evidence checklists.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {caseTemplates.slice(0, 4).map((template, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-sm text-slate-600">
-                  <CheckCircle className="w-4 h-4 text-blue-500 shrink-0" />
-                  <span className="truncate">{template.title}</span>
-                </div>
-              ))}
-              <div className="flex items-center gap-2 text-sm text-slate-500 col-span-2">
-                <span className="text-blue-600 font-medium">+ {caseTemplates.length - 4} more templates</span>
-              </div>
-            </div>
-            <Button 
-              variant="default" 
-              className="w-full mt-2 bg-blue-600 hover:bg-blue-700"
-              onClick={() => {
-                if (!user) {
-                  navigate("/auth");
-                } else {
-                  setShowTemplates(true);
-                }
-              }}
-              data-testid="button-view-templates"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              {user ? "View All Templates" : "Sign In to View Templates"}
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Templates Dialog */}
