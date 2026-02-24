@@ -2077,7 +2077,7 @@ export default function IncidentView() {
             {/* Delete Button */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-700 hover:bg-red-50">
                   <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </AlertDialogTrigger>
@@ -2336,7 +2336,7 @@ export default function IncidentView() {
                           {attachedDocs.map((doc) => (
                             <ThumbnailWithDelete key={doc.id} onDelete={() => deleteMutation.mutate(doc.id)} onPreview={() => openPreview(doc)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                               {isAnalysisPdf(doc) ? (
-                                <Card className="w-full h-full relative flex items-center justify-center border-violet-200 bg-violet-50 rounded-md">
+                                <Card className="w-full h-full relative flex items-center justify-center border-violet-200 bg-violet-50 rounded-md" title="AI-generated PDF analysis">
                                   <Bot className="w-4 h-4 text-violet-600" />
                                   <span className="absolute -bottom-0.5 -right-0.5 text-[8px] px-1 py-[1px] rounded bg-violet-600 text-white font-semibold">PDF</span>
                                 </Card>
@@ -2400,7 +2400,7 @@ export default function IncidentView() {
                             ) : (
                               <ThumbnailWithDelete key={file.id} onDelete={() => deleteMutation.mutate(file.id)} onPreview={() => openPreview(file)} className="aspect-square overflow-hidden cursor-pointer rounded-md">
                                 {isAnalysisPdf(file) ? (
-                                  <Card className="w-full h-full relative flex items-center justify-center border-violet-200 bg-violet-50 rounded-md">
+                                  <Card className="w-full h-full relative flex items-center justify-center border-violet-200 bg-violet-50 rounded-md" title="AI-generated PDF analysis">
                                     <Bot className="w-4 h-4 text-violet-600" />
                                     <span className="absolute -bottom-0.5 -right-0.5 text-[8px] px-1 py-[1px] rounded bg-violet-600 text-white font-semibold">PDF</span>
                                   </Card>
@@ -2670,7 +2670,7 @@ export default function IncidentView() {
               {/* Delete Button */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-red-700 hover:bg-red-50">
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </AlertDialogTrigger>
