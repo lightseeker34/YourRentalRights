@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download, FolderUp, AlertTriangle, Info, Minus, Wrench } from "lucide-react";
+import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download, FolderUp, AlertTriangle, Info, Minus, Wrench, Menu } from "lucide-react";
 import jsPDF from "jspdf";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -2578,6 +2578,17 @@ export default function IncidentView() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Mobile top-right menu button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-3 right-3 z-30 md:hidden bg-white/90 border border-slate-200 shadow-sm"
+        onClick={() => { setMobileDrawerOpen(true); setDrawerOpenedByTour(false); }}
+        aria-label="Open case menu"
+        data-testid="button-mobile-case-menu"
+      >
+        <Menu className="w-5 h-5" />
+      </Button>
       {/* Mobile drawer overlay */}
       {mobileDrawerOpen && (
         <div 
@@ -3991,7 +4002,7 @@ export default function IncidentView() {
         <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pt-[0px] pb-[0px]">
           <div className="max-w-3xl mx-auto space-y-6 pb-28 md:pb-6">
             {chatLogs.length === 0 && (
-              <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-6 mb-6" data-testid="chat-empty-state">
+              <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-16 md:mt-6 mb-6" data-testid="chat-empty-state">
                 <div className="flex flex-col items-center select-none w-full max-w-[calc(100vw-2rem)] px-2 overflow-hidden" data-testid="ai-assistant-placeholder">
                   <div className="bg-white/90 border border-slate-200/60 rounded-3xl px-8 py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full max-w-full overflow-hidden flex flex-col items-center">
                     <span className="block text-7xl font-light text-slate-300 leading-[0.8] text-center tracking-tighter">Your</span>
