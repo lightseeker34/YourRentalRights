@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { GuidedTour, shouldOpenMobileDrawer } from "@/components/guided-tour";
 import { ChatInput, type ChatInputHandle } from "@/components/chat-input";
+import { ImagePreviewModal } from "@/components/image-preview-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -3850,42 +3851,20 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
-      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); } }}>
-        <DialogContent
-          aria-describedby={undefined}
-          className={previewType === 'image' ? "w-[98vw] max-w-none h-[96vh] max-h-[96vh] rounded-xl mx-auto p-1 [&>button]:top-8 [&>button]:right-4" : "w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto [&>button]:top-8 [&>button]:right-4"}
-        >
-          {previewType !== 'image' && (
-            <DialogHeader>
-              <DialogTitle className="pt-[10px] pb-[10px]">{previewName}</DialogTitle>
-              <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
-            </DialogHeader>
-          )}
-          <div className={previewType === 'image' ? "flex items-center justify-center pt-16 px-1 pb-1 w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
-            {previewType === 'image' ? (
-              <div className="flex items-center justify-center w-full h-full">
-                <ImageWithFallback
-                  src={previewUrl || ''}
-                  alt={previewName}
-                  className="block mx-auto h-auto max-w-full max-h-[88vh] object-contain"
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <Paperclip className="w-16 h-16 text-slate-400" />
-                <a 
-                  href={previewUrl || ''} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  Open Document
-                </a>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ImagePreviewModal
+        open={previewUrl !== null}
+        onOpenChange={(open) => { if (!open) { setPreviewUrl(null); } }}
+        previewType={previewType}
+        previewUrl={previewUrl}
+        previewName={previewName}
+        renderImage={() => (
+          <ImageWithFallback
+            src={previewUrl || ''}
+            alt={previewName}
+            className="block mx-auto h-auto max-w-full max-h-[88vh] object-contain"
+          />
+        )}
+      />
       {/* AI Analysis Results Modal */}
       <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
         <DialogContent aria-describedby={undefined} className="max-w-2xl max-h-[90vh] overflow-y-auto">
