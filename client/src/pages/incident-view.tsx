@@ -83,6 +83,7 @@ export default function IncidentView() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'document'>('image');
   const [previewName, setPreviewName] = useState("");
+  const [previewZoomed, setPreviewZoomed] = useState(false);
   
   // PDF Export state
   const [isExporting, setIsExporting] = useState(false);
@@ -3849,10 +3850,10 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
-      <Dialog open={previewUrl !== null} onOpenChange={(open) => !open && setPreviewUrl(null)}>
+      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); setPreviewZoomed(false); } }}>
         <DialogContent
           aria-describedby={undefined}
-          className={previewType === 'image' ? "w-[98vw] max-w-none h-[94vh] max-h-[94vh] p-1 rounded-xl mx-auto" : "w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto"}
+          className="w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto"
         >
           {previewType !== 'image' && (
             <DialogHeader>
@@ -3860,24 +3861,17 @@ export default function IncidentView() {
               <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
             </DialogHeader>
           )}
-          <div className={previewType === 'image' ? "flex items-center justify-center w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
+          <div className={previewType === 'image' ? "flex items-center justify-center p-2 w-full max-h-[82vh] overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
             {previewType === 'image' ? (
               <button
                 type="button"
-                onClick={(e) => {
-                  const el = e.currentTarget;
-                  if (!document.fullscreenElement) {
-                    el.requestFullscreen?.();
-                  } else {
-                    document.exitFullscreen?.();
-                  }
-                }}
-                className="cursor-zoom-in flex items-center justify-center w-full h-full"
+                onClick={() => setPreviewZoomed((z) => !z)}
+                className={`flex items-center justify-center w-full ${previewZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
               >
                 <ImageWithFallback
                   src={previewUrl || ''}
                   alt={previewName}
-                  className="block mx-auto max-w-[96vw] max-h-[92vh] h-auto object-contain rounded-lg"
+                  className={`block mx-auto h-auto object-contain rounded-lg ${previewZoomed ? 'max-w-none max-h-none' : 'max-w-full max-h-[82vh]'}`}
                 />
               </button>
             ) : (
