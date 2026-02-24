@@ -520,20 +520,20 @@ export async function registerRoutes(
     const evidenceContextPass1 = formatStructuredTimelineForPrompt(pass1Context.included);
     const evidenceContextPass2 = formatStructuredTimelineForPrompt(pass2Context.included);
 
-    function shouldTriggerBackfill(response: string): boolean {
-      const text = response.toLowerCase();
-      return [
-        "need more context",
-        "need additional context",
-        "need more information",
-        "insufficient information",
-        "not enough information",
-        "can't determine",
-        "cannot determine",
-        "unclear from the timeline",
-        "incomplete timeline",
-        "older logs",
-      ].some((p) => text.includes(p));
+    function parseBackfillDecision(raw: string): boolean {
+      try {
+        const obj = JSON.parse(raw);
+        return !!obj?.needs_backfill;
+      } catch {
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) return false;
+        try {
+          const obj = JSON.parse(match[0]);
+          return !!obj?.needs_backfill;
+        } catch {
+          return false;
+        }
+      }
     }
 
     function buildSystemPrompt(evidenceContext: string, includeBackfill: boolean): string {
@@ -647,7 +647,23 @@ CONTEXT-PASS MODE: ${includeBackfill ? "PASS 2 (older routine history included)"
 
         aiResponse = completion.choices[0]?.message?.content || "I apologize, I couldn't generate a response. Please try again.";
 
-        if (shouldTriggerBackfill(aiResponse)) {
+        const backfillDecision = await xai.chat.completions.create({
+          model: "grok-4-1-fast-reasoning",
+          messages: [
+            {
+              role: "system",
+              content: "Return ONLY valid JSON with this schema: {\"needs_backfill\": boolean, \"reason\": string}. Set needs_backfill=true only if older routine logs are required to answer reliably."
+            },
+            {
+              role: "user",
+              content: `Question: ${message}\n\nDraft answer: ${aiResponse}`
+            }
+          ],
+          max_tokens: 120,
+        });
+
+        const needsBackfill = parseBackfillDecision(backfillDecision.choices[0]?.message?.content || "");
+        if (needsBackfill) {
           const completionPass2 = await xai.chat.completions.create({
             model: "grok-4-1-fast-reasoning",
             messages: [
@@ -731,7 +747,38 @@ CONTEXT-PASS MODE: ${includeBackfill ? "PASS 2 (older routine history included)"
 
         aiResponse = completion.choices[0]?.message?.content || "I apologize, I couldn't generate a response. Please try again.";
 
-        if (shouldTriggerBackfill(aiResponse)) {
+        const backfillDecision = await openai.chat.completions.create({
+          model: "gpt-4o",
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "backfill_decision",
+              schema: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  needs_backfill: { type: "boolean" },
+                  reason: { type: "string" }
+                },
+                required: ["needs_backfill", "reason"]
+              }
+            }
+          },
+          messages: [
+            {
+              role: "system",
+              content: "Decide if older routine logs are required for a reliable answer."
+            },
+            {
+              role: "user",
+              content: `Question: ${message}\n\nDraft answer: ${aiResponse}`
+            }
+          ],
+          max_tokens: 120,
+        });
+
+        const needsBackfill = parseBackfillDecision(backfillDecision.choices[0]?.message?.content || "");
+        if (needsBackfill) {
           const completionPass2 = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
