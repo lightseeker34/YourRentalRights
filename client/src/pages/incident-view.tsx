@@ -2168,7 +2168,7 @@ export default function IncidentView() {
               const hasAttachments = incidentPhotos.length > 0 || incidentDocs.length > 0;
               if (!hasAttachments) return null;
               return (
-                <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-end overflow-hidden">
+                <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-start overflow-hidden">
                   {incidentPhotos.map((photo) => (
                     <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                       <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
@@ -2308,7 +2308,7 @@ export default function IncidentView() {
                         color={color}
                       />
                       {hasAttachments && (
-                        <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-end overflow-hidden">
+                        <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-start overflow-hidden">
                           {attachedPhotos.map((photo) => (
                             <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                               <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
@@ -2931,7 +2931,7 @@ export default function IncidentView() {
                           color={color}
                         />
                         {hasAttachments && (
-                          <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-end overflow-hidden">
+                          <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-start overflow-hidden">
                             {attachedPhotos.map((photo) => (
                             <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                               <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
@@ -3850,12 +3850,17 @@ export default function IncidentView() {
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
       <Dialog open={previewUrl !== null} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent aria-describedby={undefined} className="w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto">
-          <DialogHeader>
-            <DialogTitle className="pt-[10px] pb-[10px]">{previewName}</DialogTitle>
-            <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto">
+        <DialogContent
+          aria-describedby={undefined}
+          className={previewType === 'image' ? "w-[98vw] max-w-none h-[94vh] max-h-[94vh] p-1 rounded-xl mx-auto" : "w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto"}
+        >
+          {previewType !== 'image' && (
+            <DialogHeader>
+              <DialogTitle className="pt-[10px] pb-[10px]">{previewName}</DialogTitle>
+              <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
+            </DialogHeader>
+          )}
+          <div className={previewType === 'image' ? "flex items-center justify-center w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
             {previewType === 'image' ? (
               <button
                 type="button"
@@ -3867,13 +3872,12 @@ export default function IncidentView() {
                     document.exitFullscreen?.();
                   }
                 }}
-                className="cursor-zoom-in"
-                title="Tap to view fullscreen"
+                className="cursor-zoom-in flex items-center justify-center w-full h-full"
               >
                 <ImageWithFallback
                   src={previewUrl || ''}
                   alt={previewName}
-                  className="block mx-auto max-w-full max-h-[75vh] h-auto object-contain rounded-xl"
+                  className="block mx-auto max-w-[96vw] max-h-[92vh] h-auto object-contain rounded-lg"
                 />
               </button>
             ) : (
