@@ -69,6 +69,7 @@
   }
   html, body {
     overflow: hidden;
+    overflow-x: hidden;
     height: 100%;
     overscroll-behavior: none;
   }
@@ -80,6 +81,7 @@
   #root {
     height: 100%;
     overflow: auto;
+    overflow-x: hidden;
   }
 }
 

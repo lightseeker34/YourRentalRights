@@ -230,8 +230,8 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
         </div>
       </header>
       {/* Main Content */}
-      <main className="flex-1 flex flex-col relative z-10">
-        <div className="fixed top-[20%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vh] h-[80vh] bg-[radial-gradient(circle,rgba(203,213,225,0.4)_0%,rgba(241,245,249,0)_70%)] -z-10 pointer-events-none" />
+      <main className="flex-1 flex flex-col relative z-10 overflow-x-hidden">
+        <div className="fixed top-[20%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(80vh,95vw)] h-[min(80vh,95vw)] bg-[radial-gradient(circle,rgba(203,213,225,0.4)_0%,rgba(241,245,249,0)_70%)] -z-10 pointer-events-none" />
         {children}
       </main>
       {/* Footer */}
