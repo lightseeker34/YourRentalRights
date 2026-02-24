@@ -4049,7 +4049,7 @@ export default function IncidentView() {
               </div>
             )}
             {chatLogs.map((log) => (
-              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
+              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
                 <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-[calc(100%-3.5rem)] md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
                   {editLogId === log.id && (
                     <>
@@ -4349,13 +4349,13 @@ export default function IncidentView() {
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
-                                ul: ({children}) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
-                                ol: ({children}) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
-                                li: ({children}) => <li className="mb-1">{children}</li>,
-                                h1: ({children}) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
-                                h2: ({children}) => <h2 className="text-base font-bold mb-2">{children}</h2>,
-                                h3: ({children}) => <h3 className="text-sm font-semibold mb-1">{children}</h3>,
+                                p: ({children}) => <p className="mb-2 last:mb-0 break-words [overflow-wrap:anywhere]">{children}</p>,
+                                ul: ({children}) => <ul className="list-disc pl-4 mb-2 break-words [overflow-wrap:anywhere]">{children}</ul>,
+                                ol: ({children}) => <ol className="list-decimal pl-4 mb-2 break-words [overflow-wrap:anywhere]">{children}</ol>,
+                                li: ({children}) => <li className="mb-1 break-words [overflow-wrap:anywhere]">{children}</li>,
+                                h1: ({children}) => <h1 className="text-lg font-bold mb-2 break-words [overflow-wrap:anywhere]">{children}</h1>,
+                                h2: ({children}) => <h2 className="text-base font-bold mb-2 break-words [overflow-wrap:anywhere]">{children}</h2>,
+                                h3: ({children}) => <h3 className="text-sm font-semibold mb-1 break-words [overflow-wrap:anywhere]">{children}</h3>,
                                 code: ({children, className}) => {
                                   const isInline = !className;
                                   return isInline 
@@ -4380,7 +4380,7 @@ export default function IncidentView() {
                                     </div>
                                   );
                                 },
-                                blockquote: ({children}) => <blockquote className="border-l-2 border-slate-300 pl-3 italic my-2">{children}</blockquote>,
+                                blockquote: ({children}) => <blockquote className="border-l-2 border-slate-300 pl-3 italic my-2 break-words [overflow-wrap:anywhere]">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 table: ({children}) => (
                                   <div className="w-full max-w-full overflow-x-auto my-3">
