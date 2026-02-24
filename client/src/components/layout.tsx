@@ -16,10 +16,12 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
   const [open, setOpen] = useState(false);
   const { user, logoutMutation } = useAuth();
 
-  // Auto-hide ticker and footer on dashboard pages
+  // Auto-hide ticker/footer on dashboard pages and enable immersive incident view
   const isDashboard = location.startsWith('/dashboard');
+  const isIncidentView = location.startsWith('/dashboard/incident/');
   const shouldHideTicker = hideTicker || isDashboard;
   const shouldHideFooter = hideFooter || isDashboard;
+  const shouldHideHeader = isIncidentView;
 
   const navItems = [
     { href: "/", label: "Home", icon: Home },
@@ -67,7 +69,7 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
         </div>
       )}
       {/* Navigation Bar */}
-      <header className="sticky top-0 z-40 w-full border-b-0 md:border-b border-slate-200 bg-white md:bg-white/80 md:backdrop-blur-md">
+      {!shouldHideHeader && <header className="sticky top-0 z-40 w-full border-b-0 md:border-b border-slate-200 bg-white md:bg-white/80 md:backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg text-slate-900 hover:opacity-80 transition-opacity cursor-pointer">
             <div className="bg-slate-100 p-1.5 rounded-md border border-slate-200/50">
@@ -228,7 +230,7 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
             </Sheet>
           </div>
         </div>
-      </header>
+      </header>}
       {/* Main Content */}
       <main className="flex-1 w-full max-w-full flex flex-col relative z-10 overflow-x-hidden">
         <div className="fixed top-[20%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(80vh,95vw)] h-[min(80vh,95vw)] bg-[radial-gradient(circle,rgba(203,213,225,0.4)_0%,rgba(241,245,249,0)_70%)] -z-10 pointer-events-none" />

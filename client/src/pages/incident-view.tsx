@@ -1141,7 +1141,7 @@ export default function IncidentView() {
   // Skeleton loading state
   if (!incident) {
     return (
-      <div className="flex w-full max-w-full box-border overflow-x-hidden flex-col md:flex-row h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50">
+      <div className="flex w-full max-w-full box-border overflow-x-hidden flex-col md:flex-row h-[100svh] md:h-[100dvh] bg-slate-50">
         {/* Sidebar skeleton */}
         <div className="hidden md:flex md:flex-col md:w-80 bg-white border-r border-slate-200 p-4">
           <div className="h-6 w-48 bg-slate-200 rounded animate-pulse mb-2" />
@@ -2427,7 +2427,7 @@ export default function IncidentView() {
 
   return (
     <div 
-      className="flex w-full max-w-full box-border overflow-x-hidden h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50"
+      className="flex w-full max-w-full box-border overflow-x-hidden h-[100svh] md:h-[100dvh] bg-slate-50"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -2586,7 +2586,7 @@ export default function IncidentView() {
         />
       )}
       {/* Mobile drawer */}
-      <div className={`fixed top-16 left-0 h-[calc(100dvh-64px)] w-80 bg-white z-50 transform transition-transform duration-300 ease-out md:hidden flex flex-col shadow-xl rounded-r-xl ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed top-0 left-0 h-[100dvh] w-80 bg-white z-50 transform transition-transform duration-300 ease-out md:hidden flex flex-col shadow-xl rounded-r-xl ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex justify-between items-center p-4 border-b shrink-0 pt-[1px] pb-[1px]">
           <h2 className="font-bold text-lg pt-[10px] pb-[10px]">Case Details</h2>
           <Button variant="ghost" size="icon" onClick={() => { setMobileDrawerOpen(false); setDrawerOpenedByTour(false); }}>
