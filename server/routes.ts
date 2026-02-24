@@ -8,7 +8,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import OpenAI from "openai";
-import { formatEvidenceContext, formatEvidenceTimeline, formatPhotoList, formatTimelineForPrompt, formatPhotoListForPrompt, buildUserContext, buildIncidentContext, computeTimelineHash } from "./ai-context";
+import { assembleContextTwoPasses, formatStructuredTimelineForPrompt, formatEvidenceTimeline, formatPhotoList, formatTimelineForPrompt, formatPhotoListForPrompt, buildUserContext, buildIncidentContext, computeTimelineHash } from "./ai-context";
 import { getFromR2, isR2Enabled, uploadToR2 } from "./r2";
 
 const uploadDir = path.join(process.cwd(), "uploads");
@@ -515,15 +515,29 @@ export async function registerRoutes(
 
     // Get all evidence logs for RAG context (deterministic: sorted by timestamp ASC, id ASC)
     const allLogs = await storage.getLogsByIncident(incidentId);
-    const evidenceContext = formatEvidenceContext(allLogs);
+    const pass1Context = assembleContextTwoPasses(allLogs, { includeBackfill: false });
+    const pass2Context = assembleContextTwoPasses(allLogs, { includeBackfill: true });
+    const evidenceContextPass1 = formatStructuredTimelineForPrompt(pass1Context.included);
+    const evidenceContextPass2 = formatStructuredTimelineForPrompt(pass2Context.included);
 
-    // Get base URL for constructing full image URLs
-    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-      : `http://localhost:${process.env.PORT || 5000}`;
+    function shouldTriggerBackfill(response: string): boolean {
+      const text = response.toLowerCase();
+      return [
+        "need more context",
+        "need additional context",
+        "need more information",
+        "insufficient information",
+        "not enough information",
+        "can't determine",
+        "cannot determine",
+        "unclear from the timeline",
+        "incomplete timeline",
+        "older logs",
+      ].some((p) => text.includes(p));
+    }
 
-    // Build the full system message with RAG context
-    const fullSystemPrompt = `${systemPrompt || "You are a tenant advocacy assistant."}
+    function buildSystemPrompt(evidenceContext: string, includeBackfill: boolean): string {
+      return `${systemPrompt || "You are a tenant advocacy assistant."}
 
 ## TENANT PROFILE
 ${userContext || "No profile information available."}
@@ -545,7 +559,13 @@ PHOTO ANALYSIS GUIDELINES:
 - If something is unclear or ambiguous in a photo, say so
 - Be consistent - the same photo should receive the same analysis
 - Only describe conditions you can genuinely observe
-- If you cannot determine something from the image, admit uncertainty rather than guessing`;
+- If you cannot determine something from the image, admit uncertainty rather than guessing
+
+CONTEXT-PASS MODE: ${includeBackfill ? "PASS 2 (older routine history included)" : "PASS 1 (critical + recent only)"}`;
+    }
+
+    const fullSystemPromptPass1 = buildSystemPrompt(evidenceContextPass1, false);
+    const fullSystemPromptPass2 = buildSystemPrompt(evidenceContextPass2, true);
 
     let aiResponse = "";
 
@@ -618,7 +638,7 @@ PHOTO ANALYSIS GUIDELINES:
         const completion = await xai.chat.completions.create({
           model: "grok-4-1-fast-reasoning",
           messages: [
-            { role: "system", content: fullSystemPrompt },
+            { role: "system", content: fullSystemPromptPass1 },
             ...chatHistory,
             { role: "user", content: messageContent }
           ],
@@ -626,6 +646,19 @@ PHOTO ANALYSIS GUIDELINES:
         });
 
         aiResponse = completion.choices[0]?.message?.content || "I apologize, I couldn't generate a response. Please try again.";
+
+        if (shouldTriggerBackfill(aiResponse)) {
+          const completionPass2 = await xai.chat.completions.create({
+            model: "grok-4-1-fast-reasoning",
+            messages: [
+              { role: "system", content: fullSystemPromptPass2 },
+              ...chatHistory,
+              { role: "user", content: messageContent }
+            ],
+            max_tokens: 4096,
+          });
+          aiResponse = completionPass2.choices[0]?.message?.content || aiResponse;
+        }
       } 
       // Fallback to OpenAI if no Grok key
       else if (openaiApiKey) {
@@ -689,7 +722,7 @@ PHOTO ANALYSIS GUIDELINES:
         const completion = await openai.chat.completions.create({
           model: "gpt-4o",
           messages: [
-            { role: "system", content: fullSystemPrompt },
+            { role: "system", content: fullSystemPromptPass1 },
             ...chatHistory,
             { role: "user", content: messageContent }
           ],
@@ -697,6 +730,19 @@ PHOTO ANALYSIS GUIDELINES:
         });
 
         aiResponse = completion.choices[0]?.message?.content || "I apologize, I couldn't generate a response. Please try again.";
+
+        if (shouldTriggerBackfill(aiResponse)) {
+          const completionPass2 = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              { role: "system", content: fullSystemPromptPass2 },
+              ...chatHistory,
+              { role: "user", content: messageContent }
+            ],
+            max_tokens: 4096,
+          });
+          aiResponse = completionPass2.choices[0]?.message?.content || aiResponse;
+        }
       } 
       else {
         aiResponse = "No AI API key configured. Please add your Grok or OpenAI API key in the admin panel to enable AI responses.";
