@@ -4032,7 +4032,7 @@ export default function IncidentView() {
       {/* Chat Area */}
       <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col">
         <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pt-16 md:pt-0 pb-[0px]">
-          <div className="max-w-3xl mx-auto space-y-6 pb-28 md:pb-6">
+          <div className="w-full min-w-0 max-w-3xl mx-auto space-y-6 pb-28 md:pb-6 overflow-x-hidden">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-16 md:mt-6 mb-6" data-testid="chat-empty-state">
                 <div className="flex flex-col items-center select-none w-full max-w-[calc(100vw-2rem)] px-2 overflow-hidden" data-testid="ai-assistant-placeholder">
@@ -4049,7 +4049,7 @@ export default function IncidentView() {
               </div>
             )}
             {chatLogs.map((log) => (
-              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
+              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-4 overflow-x-hidden transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
                 <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-[calc(100%-3.5rem)] md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
                   {editLogId === log.id && (
                     <>
@@ -4339,13 +4339,13 @@ export default function IncidentView() {
                   )}
                   {editLogId !== log.id && (
                     <>
-                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 [overflow-wrap:anywhere] ${
+                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full overflow-x-hidden [overflow-wrap:anywhere] ${
                                 log.isAi 
                                   ? "bg-transparent text-slate-700" 
                                   : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words"
                               }`}>
                         {log.isAi ? (
-                          <div className="min-w-0 break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
+                          <div className="w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
@@ -4383,8 +4383,8 @@ export default function IncidentView() {
                                 blockquote: ({children}) => <blockquote className="border-l-2 border-slate-300 pl-3 italic my-2 break-words [overflow-wrap:anywhere]">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 table: ({children}) => (
-                                  <div className="w-full max-w-full overflow-x-auto my-3">
-                                    <table className="min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
+                                  <div className="w-full max-w-full min-w-0 overflow-x-auto my-3 pr-1">
+                                    <table className="w-max min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
                                   </div>
                                 ),
                                 thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
