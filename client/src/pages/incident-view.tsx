@@ -3992,10 +3992,10 @@ export default function IncidentView() {
           <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-[calc(100dvh-280px)] bg-gradient-to-b from-slate-50 to-slate-100/50 pt-[0px] pb-[0px] overflow-hidden mt-[50px] mb-[50px]" data-testid="chat-empty-state">
-                <div className="flex flex-col items-center select-none w-full max-w-sm px-4" data-testid="ai-assistant-placeholder">
-                  <div className="bg-white/90 border border-slate-200/60 rounded-3xl px-8 py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full flex flex-col items-center pt-[40px] pb-[40px]">
-                    <span className="block text-7xl font-light text-slate-300 leading-[0.8] text-center tracking-tighter">Your</span>
-                    <span className="block text-7xl font-light text-slate-300 leading-[0.8] text-center tracking-tighter mt-[9px] mb-[9px]">Assistant</span>
+                <div className="flex flex-col items-center select-none w-full max-w-sm px-4 overflow-hidden" data-testid="ai-assistant-placeholder">
+                  <div className="bg-white/90 border border-slate-200/60 rounded-3xl px-6 sm:px-8 py-8 sm:py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full max-w-full overflow-hidden flex flex-col items-center">
+                    <span className="block text-5xl sm:text-7xl font-light text-slate-300 leading-[0.9] text-center tracking-tight">Your</span>
+                    <span className="block text-5xl sm:text-7xl font-light text-slate-300 leading-[0.9] text-center tracking-tight mt-2 mb-2">Assistant</span>
                   </div>
                   <div className="mt-6 w-full max-w-[340px]">
                     <div className="bg-white/70 border border-slate-200/50 rounded-2xl px-6 py-4 shadow-[0_4px_15px_rgb(0,0,0,0.02)] pt-[1px] pb-[1px]">
