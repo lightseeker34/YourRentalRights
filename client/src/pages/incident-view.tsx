@@ -1141,7 +1141,7 @@ export default function IncidentView() {
   // Skeleton loading state
   if (!incident) {
     return (
-      <div className="flex w-full max-w-full overflow-x-hidden flex-col md:flex-row h-[calc(100dvh-64px)] bg-slate-50">
+      <div className="flex w-screen max-w-[100vw] overflow-x-hidden flex-col md:flex-row h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50">
         {/* Sidebar skeleton */}
         <div className="hidden md:flex md:flex-col md:w-80 bg-white border-r border-slate-200 p-4">
           <div className="h-6 w-48 bg-slate-200 rounded animate-pulse mb-2" />
@@ -2427,7 +2427,7 @@ export default function IncidentView() {
 
   return (
     <div 
-      className="flex w-full max-w-full overflow-x-hidden h-[calc(100dvh-64px)] bg-slate-50"
+      className="flex w-screen max-w-[100vw] overflow-x-hidden h-[calc(100svh-64px)] md:h-[calc(100dvh-64px)] bg-slate-50"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -3989,13 +3989,13 @@ export default function IncidentView() {
       {/* Chat Area */}
       <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col">
         <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pt-[0px] pb-[0px]">
-          <div className="max-w-3xl mx-auto space-y-6 pb-4">
+          <div className="max-w-3xl mx-auto space-y-6 pb-28 md:pb-6">
             {chatLogs.length === 0 && (
-              <div className="flex items-center justify-center h-[calc(100dvh-280px)] bg-gradient-to-b from-slate-50 to-slate-100/50 pt-[0px] pb-[0px] overflow-hidden mt-[50px] mb-[50px]" data-testid="chat-empty-state">
-                <div className="flex flex-col items-center select-none w-full max-w-sm px-4 overflow-hidden" data-testid="ai-assistant-placeholder">
-                  <div className="bg-white/90 border border-slate-200/60 rounded-3xl px-6 sm:px-8 py-8 sm:py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full max-w-full overflow-hidden flex flex-col items-center">
-                    <span className="block text-5xl sm:text-7xl font-light text-slate-300 leading-[0.9] text-center tracking-tight">Your</span>
-                    <span className="block text-5xl sm:text-7xl font-light text-slate-300 leading-[0.9] text-center tracking-tight mt-2 mb-2">Assistant</span>
+              <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-6 mb-6" data-testid="chat-empty-state">
+                <div className="flex flex-col items-center select-none w-full max-w-[calc(100vw-2rem)] px-2 overflow-hidden" data-testid="ai-assistant-placeholder">
+                  <div className="bg-white/90 border border-slate-200/60 rounded-3xl px-5 sm:px-8 py-7 sm:py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full max-w-full overflow-hidden flex flex-col items-center">
+                    <span className="block text-4xl sm:text-7xl font-light text-slate-300 leading-[0.95] text-center tracking-tight">Your</span>
+                    <span className="block text-4xl sm:text-7xl font-light text-slate-300 leading-[0.95] text-center tracking-tight mt-2 mb-2">Assistant</span>
                   </div>
                   <div className="mt-6 w-full max-w-[340px]">
                     <div className="bg-white/70 border border-slate-200/50 rounded-2xl px-6 py-4 shadow-[0_4px_15px_rgb(0,0,0,0.02)] pt-[1px] pb-[1px]">

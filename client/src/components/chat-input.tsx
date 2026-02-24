@@ -112,7 +112,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(functi
   const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
 
   return (
-    <div className="px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] bg-white border-t border-slate-200">
+    <div className="sticky bottom-0 z-20 px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] bg-white border-t border-slate-200">
       <div className="w-full max-w-3xl mx-auto">
         {showEvidencePicker && (
           <div className="mb-2 p-3 bg-slate-50 rounded-lg border border-slate-200 max-h-44 overflow-y-auto">
@@ -163,7 +163,7 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(functi
           </div>
         )}
 
-        <div className="border border-slate-200 rounded-xl bg-white focus-within:border-slate-400 transition-colors">
+        <div className="min-w-0 w-full border border-slate-200 rounded-xl bg-white focus-within:border-slate-400 transition-colors">
           {chatAttachments.length > 0 && (
             <div className="flex gap-2 flex-wrap px-3 pt-3">
               {chatAttachments.map((url, idx) => (
