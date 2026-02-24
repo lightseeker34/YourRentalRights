@@ -2580,12 +2580,12 @@ export default function IncidentView() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Mobile top bar with global app hamburger */}
-      <div className="fixed top-0 left-0 right-0 h-14 z-30 md:hidden flex items-center justify-end px-3 bg-slate-50/95 backdrop-blur-sm">
+      {/* Floating mobile app hamburger */}
+      <div className="fixed top-3 right-3 z-30 md:hidden">
         <Button
           variant="ghost"
           size="icon"
-          className="bg-white border border-slate-200 shadow-sm"
+          className="bg-white/95 border border-slate-200 shadow-md backdrop-blur-sm"
           onClick={() => setGlobalMenuOpen(true)}
           aria-label="Open app menu"
           data-testid="button-mobile-app-menu"
@@ -4031,7 +4031,7 @@ export default function IncidentView() {
       </Dialog>
       {/* Chat Area */}
       <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col">
-        <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pt-16 md:pt-0 pb-[0px]">
+        <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pb-[0px]">
           <div className="w-full min-w-0 max-w-3xl mx-auto space-y-6 pb-28 md:pb-6 overflow-x-hidden">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-16 md:mt-6 mb-6" data-testid="chat-empty-state">
@@ -4339,13 +4339,13 @@ export default function IncidentView() {
                   )}
                   {editLogId !== log.id && (
                     <>
-                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full [overflow-wrap:anywhere] ${
+                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full overflow-x-hidden [overflow-wrap:anywhere] ${
                                 log.isAi 
                                   ? "bg-transparent text-slate-700" 
                                   : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words"
                               }`}>
                         {log.isAi ? (
-                          <div className="w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
+                          <div className="w-full max-w-full min-w-0 overflow-x-hidden break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
@@ -4359,7 +4359,7 @@ export default function IncidentView() {
                                 code: ({children, className}) => {
                                   const isInline = !className;
                                   return isInline 
-                                    ? <code className="bg-slate-100 px-1 py-0.5 rounded text-xs">{children}</code>
+                                    ? <code className="bg-slate-100 px-1 py-0.5 rounded text-xs break-all">{children}</code>
                                     : <code className="block bg-slate-100 p-2 rounded text-xs overflow-x-auto my-2">{children}</code>;
                                 },
                                 pre: ({children, ...props}) => {
@@ -4383,8 +4383,8 @@ export default function IncidentView() {
                                 blockquote: ({children}) => <blockquote className="border-l-2 border-slate-300 pl-3 italic my-2 break-words [overflow-wrap:anywhere]">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 table: ({children}) => (
-                                  <div className="w-full max-w-full min-w-0 overflow-x-auto my-3 -mx-1 px-1">
-                                    <table className="inline-table min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
+                                  <div className="w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain my-3 -mx-2 px-2 pb-1">
+                                    <table className="table-auto min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
                                   </div>
                                 ),
                                 thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
