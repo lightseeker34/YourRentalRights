@@ -112,8 +112,8 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(functi
   const photoLogs = logs?.filter(l => photoTypes.includes(l.type) && l.fileUrl) || [];
 
   return (
-    <div className="px-3 py-2 bg-white border-t border-slate-200">
-      <div className="max-w-3xl mx-auto">
+    <div className="px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] bg-white border-t border-slate-200">
+      <div className="w-full max-w-3xl mx-auto">
         {showEvidencePicker && (
           <div className="mb-2 p-3 bg-slate-50 rounded-lg border border-slate-200 max-h-44 overflow-y-auto">
             <div className="flex items-center justify-between mb-2">

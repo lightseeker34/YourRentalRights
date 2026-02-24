@@ -1141,7 +1141,7 @@ export default function IncidentView() {
   // Skeleton loading state
   if (!incident) {
     return (
-      <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-slate-50">
+      <div className="flex flex-col md:flex-row h-[calc(100dvh-64px)] bg-slate-50">
         {/* Sidebar skeleton */}
         <div className="hidden md:flex md:flex-col md:w-80 bg-white border-r border-slate-200 p-4">
           <div className="h-6 w-48 bg-slate-200 rounded animate-pulse mb-2" />
@@ -2427,7 +2427,7 @@ export default function IncidentView() {
 
   return (
     <div 
-      className="flex h-[calc(100vh-64px)] bg-slate-50"
+      className="flex h-[calc(100dvh-64px)] bg-slate-50"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -2586,7 +2586,7 @@ export default function IncidentView() {
         />
       )}
       {/* Mobile drawer */}
-      <div className={`fixed top-16 left-0 h-[calc(100vh-64px)] w-80 bg-white z-50 transform transition-transform duration-300 ease-out md:hidden flex flex-col shadow-xl rounded-r-xl ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed top-16 left-0 h-[calc(100dvh-64px)] w-80 bg-white z-50 transform transition-transform duration-300 ease-out md:hidden flex flex-col shadow-xl rounded-r-xl ${mobileDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex justify-between items-center p-4 border-b shrink-0 pt-[1px] pb-[1px]">
           <h2 className="font-bold text-lg pt-[10px] pb-[10px]">Case Details</h2>
           <Button variant="ghost" size="icon" onClick={() => { setMobileDrawerOpen(false); setDrawerOpenedByTour(false); }}>
@@ -3991,7 +3991,7 @@ export default function IncidentView() {
         <ScrollArea ref={scrollRef} className="relative overflow-hidden flex-1 p-4 bg-slate-50 pt-[0px] pb-[0px]">
           <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {chatLogs.length === 0 && (
-              <div className="flex items-center justify-center h-[calc(100vh-280px)] bg-gradient-to-b from-slate-50 to-slate-100/50 pt-[0px] pb-[0px] overflow-hidden mt-[50px] mb-[50px]" data-testid="chat-empty-state">
+              <div className="flex items-center justify-center h-[calc(100dvh-280px)] bg-gradient-to-b from-slate-50 to-slate-100/50 pt-[0px] pb-[0px] overflow-hidden mt-[50px] mb-[50px]" data-testid="chat-empty-state">
                 <div className="flex flex-col items-center select-none w-full max-w-sm px-4" data-testid="ai-assistant-placeholder">
                   <div className="bg-white/90 border border-slate-200/60 rounded-3xl px-8 py-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full flex flex-col items-center pt-[40px] pb-[40px]">
                     <span className="block text-7xl font-light text-slate-300 leading-[0.8] text-center tracking-tighter">Your</span>

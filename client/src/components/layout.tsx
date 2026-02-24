@@ -42,7 +42,7 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
   ];
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-slate-900">
+    <div className="min-h-[100dvh] flex flex-col font-sans text-slate-900">
       {/* News Ticker */}
       {!shouldHideTicker && (
         <div className="ticker-wrap h-[46px] flex items-center z-50 relative shadow-md overflow-hidden">
