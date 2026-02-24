@@ -4320,7 +4320,7 @@ export default function IncidentView() {
                                   : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words max-w-full"
                               }`}>
                         {log.isAi ? (
-                          <div className="w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
+                          <div className="w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere] px-[20px] md:px-0" style={{ fontFamily: 'var(--font-chat)' }}>
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
