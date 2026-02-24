@@ -4025,7 +4025,7 @@ export default function IncidentView() {
             )}
             {chatLogs.map((log) => (
               <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-[calc(100%-3.5rem)] md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-[calc(100%-3.5rem)] md:max-w-[92%]' : 'max-w-[calc(100%-3.5rem)] md:max-w-[85%]'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
@@ -4395,8 +4395,6 @@ export default function IncidentView() {
                                         setPreviewUrl(url);
                                         setPreviewType('image');
                                         setPreviewName(`Attachment ${idx + 1}`);
-                                        setPreviewScale(1);
-                                        setPreviewTranslate({ x: 0, y: 0 });
                                       }
                                     }}
                                     data-testid={`chat-attachment-thumb-${log.id}-${idx}`}
@@ -4407,7 +4405,7 @@ export default function IncidentView() {
                           </>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 pt-[0px] pb-[0px] justify-end mt-[0px] mb-[0px]">
+                      <div className="flex items-center gap-2 pt-[0px] pb-[0px] justify-end mt-[0px] mb-[0px] min-w-0 flex-wrap">
                         <span className="text-xs text-slate-400 ml-[5px] mr-[5px]">
                           {formatDateTime(log.createdAt)}
                         </span>
