@@ -4024,8 +4024,8 @@ export default function IncidentView() {
               </div>
             )}
             {chatLogs.map((log) => (
-              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-[calc(100%-3.5rem)] md:max-w-[92%]' : 'max-w-[calc(100%-3.5rem)] md:max-w-[85%]'}`}>
+              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-2 md:gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%]' : 'max-w-[88%] md:max-w-[85%] ml-auto items-end'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
@@ -4314,10 +4314,10 @@ export default function IncidentView() {
                   )}
                   {editLogId !== log.id && (
                     <>
-                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full [overflow-wrap:anywhere] ${
+                              <div className={`p-4 rounded-xl transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full [overflow-wrap:anywhere] ${
                                 log.isAi 
-                                  ? "bg-transparent text-slate-700" 
-                                  : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words"
+                                  ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed" 
+                                  : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words max-w-full"
                               }`}>
                         {log.isAi ? (
                           <div className="w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
