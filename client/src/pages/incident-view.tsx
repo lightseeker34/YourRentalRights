@@ -4049,7 +4049,7 @@ export default function IncidentView() {
               </div>
             )}
             {chatLogs.map((log) => (
-              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-4 overflow-x-hidden transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
+              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
                 <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-[calc(100%-3.5rem)] md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
                   {editLogId === log.id && (
                     <>
@@ -4339,7 +4339,7 @@ export default function IncidentView() {
                   )}
                   {editLogId !== log.id && (
                     <>
-                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full overflow-x-hidden [overflow-wrap:anywhere] ${
+                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full [overflow-wrap:anywhere] ${
                                 log.isAi 
                                   ? "bg-transparent text-slate-700" 
                                   : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words"
@@ -4383,8 +4383,8 @@ export default function IncidentView() {
                                 blockquote: ({children}) => <blockquote className="border-l-2 border-slate-300 pl-3 italic my-2 break-words [overflow-wrap:anywhere]">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 table: ({children}) => (
-                                  <div className="w-full max-w-full min-w-0 overflow-x-auto my-3 pr-1">
-                                    <table className="w-max min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
+                                  <div className="w-full max-w-full min-w-0 overflow-x-auto my-3 -mx-1 px-1">
+                                    <table className="inline-table min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
                                   </div>
                                 ),
                                 thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
