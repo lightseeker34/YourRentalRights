@@ -83,9 +83,6 @@ export default function IncidentView() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'document'>('image');
   const [previewName, setPreviewName] = useState("");
-  const [previewZoomed, setPreviewZoomed] = useState(false);
-  const [previewScale, setPreviewScale] = useState(1);
-  const pinchStartDistanceRef = useRef<number | null>(null);
   
   // PDF Export state
   const [isExporting, setIsExporting] = useState(false);
@@ -914,10 +911,6 @@ export default function IncidentView() {
       setPreviewUrl(log.fileUrl);
       setPreviewType(isImage ? 'image' : 'document');
       setPreviewName(log.content);
-      if (isImage) {
-        setPreviewZoomed(true);
-        setPreviewScale(1);
-      }
     }
   };
 
@@ -3856,7 +3849,7 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
-      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); setPreviewZoomed(false); setPreviewScale(1); pinchStartDistanceRef.current = null; } }}>
+      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); } }}>
         <DialogContent
           aria-describedby={undefined}
           className="w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto"
@@ -3867,41 +3860,15 @@ export default function IncidentView() {
               <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
             </DialogHeader>
           )}
-          <div className={previewType === 'image' ? "flex items-center justify-center p-2 w-full max-h-[82vh] overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
+          <div className={previewType === 'image' ? "flex items-center justify-center pt-8 px-2 pb-2 w-full max-h-[82vh] overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
             {previewType === 'image' ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setPreviewZoomed((z) => !z);
-                  setPreviewScale(1);
-                }}
-                onTouchStart={(e) => {
-                  if (e.touches.length === 2) {
-                    const [a, b] = [e.touches[0], e.touches[1]];
-                    pinchStartDistanceRef.current = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-                  }
-                }}
-                onTouchMove={(e) => {
-                  if (e.touches.length === 2 && pinchStartDistanceRef.current) {
-                    e.preventDefault();
-                    const [a, b] = [e.touches[0], e.touches[1]];
-                    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-                    const ratio = dist / pinchStartDistanceRef.current;
-                    setPreviewScale((prev) => Math.min(4, Math.max(1, prev * ratio)));
-                    pinchStartDistanceRef.current = dist;
-                  }
-                }}
-                onTouchEnd={() => { pinchStartDistanceRef.current = null; }}
-                className={`flex items-center justify-center w-full ${previewZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
-                style={{ touchAction: 'none' }}
-              >
+              <div className="flex items-center justify-center w-full h-full" style={{ touchAction: 'pinch-zoom' }}>
                 <ImageWithFallback
                   src={previewUrl || ''}
                   alt={previewName}
-                  className={`block mx-auto h-auto object-contain rounded-lg ${previewZoomed ? 'max-w-none max-h-none' : 'max-w-full max-h-[82vh]'}`}
-                  style={{ transform: `scale(${previewScale})`, transformOrigin: 'center center' }}
+                  className="block mx-auto h-auto max-w-full max-h-[80vh] object-contain rounded-lg"
                 />
-              </button>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-4">
                 <Paperclip className="w-16 h-16 text-slate-400" />
@@ -4448,8 +4415,6 @@ export default function IncidentView() {
                                         setPreviewUrl(url);
                                         setPreviewType('image');
                                         setPreviewName(`Attachment ${idx + 1}`);
-                                        setPreviewZoomed(true);
-                                        setPreviewScale(1);
                                       }
                                     }}
                                     data-testid={`chat-attachment-thumb-${log.id}-${idx}`}
