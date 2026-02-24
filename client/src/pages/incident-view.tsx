@@ -4025,7 +4025,7 @@ export default function IncidentView() {
             )}
             {chatLogs.map((log) => (
               <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-2 md:gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%]' : 'max-w-[88%] md:max-w-[85%] ml-auto items-end'}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%]' : 'max-w-[88%] md:max-w-[85%] mr-auto items-start'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
