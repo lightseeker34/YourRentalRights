@@ -37,6 +37,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 export default function IncidentView() {
   const [match, params] = useRoute("/dashboard/incident/:id");
@@ -122,6 +123,7 @@ export default function IncidentView() {
   // Mobile drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [drawerOpenedByTour, setDrawerOpenedByTour] = useState(false);
+  const [globalMenuOpen, setGlobalMenuOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchCurrentX = useRef<number | null>(null);
   
@@ -2578,17 +2580,32 @@ export default function IncidentView() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Mobile top-right menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-3 right-3 z-30 md:hidden bg-white/90 border border-slate-200 shadow-sm"
-        onClick={() => { setMobileDrawerOpen(true); setDrawerOpenedByTour(false); }}
-        aria-label="Open case menu"
-        data-testid="button-mobile-case-menu"
-      >
-        <Menu className="w-5 h-5" />
-      </Button>
+      {/* Mobile top bar with global app hamburger */}
+      <div className="fixed top-0 left-0 right-0 h-14 z-30 md:hidden flex items-center justify-end px-3 bg-slate-50/95 backdrop-blur-sm border-b border-slate-200">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="bg-white border border-slate-200 shadow-sm"
+          onClick={() => setGlobalMenuOpen(true)}
+          aria-label="Open app menu"
+          data-testid="button-mobile-app-menu"
+        >
+          <Menu className="w-5 h-5" />
+        </Button>
+      </div>
+
+      <Sheet open={globalMenuOpen} onOpenChange={setGlobalMenuOpen}>
+        <SheetContent side="right" className="w-[300px]">
+          <SheetTitle className="text-left font-bold text-slate-900 mt-4 mb-4">Menu</SheetTitle>
+          <div className="flex flex-col gap-2">
+            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/dashboard'); }}>Dashboard</Button>
+            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/resources'); }}>Resources</Button>
+            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/forum'); }}>Community</Button>
+            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/profile'); }}>Account</Button>
+            <Button variant="ghost" className="justify-start" onClick={() => { setGlobalMenuOpen(false); navigate('/'); }}>Home</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
       {/* Mobile drawer overlay */}
       {mobileDrawerOpen && (
         <div 
@@ -3999,7 +4016,7 @@ export default function IncidentView() {
       </Dialog>
       {/* Chat Area */}
       <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col">
-        <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pt-[0px] pb-[0px]">
+        <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pt-16 md:pt-0 pb-[0px]">
           <div className="max-w-3xl mx-auto space-y-6 pb-28 md:pb-6">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-16 md:mt-6 mb-6" data-testid="chat-empty-state">
