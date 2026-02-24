@@ -234,17 +234,9 @@ export default function IncidentView() {
   const evidenceCount = useMemo(() => logs?.filter(l => evidenceTypes.includes(l.type)).length || 0, [logs]);
   const hasEnoughEvidence = evidenceCount >= MIN_EVIDENCE_COUNT;
   const hasReachedDailyLimit = analysisUsageCount >= ANALYSIS_DAILY_LIMIT;
-  const canRunAnalysis = hasEnoughEvidence && !hasReachedDailyLimit && !isAnalyzing;
+  const canRunAnalysis = hasExportedPdf && hasEnoughEvidence && !hasReachedDailyLimit && !isAnalyzing;
 
-  const getAnalysisButtonLabel = () => {
-    if (isAnalyzing) return 'Analyzing...';
-    if (hasReachedDailyLimit) return 'Limit reached';
-    if (!hasEnoughEvidence) {
-      const remaining = MIN_EVIDENCE_COUNT - evidenceCount;
-      return `Need ${remaining} more evidence (${Math.max(0, evidenceCount)}/${MIN_EVIDENCE_COUNT})`;
-    }
-    return 'AI Analysis';
-  };
+  const getAnalysisButtonLabel = () => 'AI Analysis';
 
   const remainingEvidence = Math.max(0, MIN_EVIDENCE_COUNT - evidenceCount);
   const hasUnlockRequirements = hasExportedPdf && hasEnoughEvidence;
@@ -2041,20 +2033,18 @@ export default function IncidentView() {
             <Download className={`w-3.5 h-3.5 mr-1 ${isExporting ? 'animate-pulse' : ''}`} />
             {isExporting ? 'Exporting...' : 'Export PDF'}
           </Button>
-          {hasEnoughEvidence && (
-            <Button 
-              variant="ghost"
-              size="sm"
-              onClick={triggerLitigationReview}
-              disabled={!canRunAnalysis}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 min-h-8 rounded-md h-7 px-2 text-xs border border-slate-300 text-slate-600 hover:text-blue-700 bg-[#4d5e700f] pt-[0px] pb-[0px] mt-[5px] mb-[5px] pl-[8px] pr-[8px] ml-[5px] mr-[5px]"
-              title={hasReachedDailyLimit ? 'Daily limit reached — try again tomorrow' : 'Run AI case analysis'}
-              data-testid="button-ai-analysis"
-            >
-              <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
-              {getAnalysisButtonLabel()}
-            </Button>
-          )}
+          <Button 
+            variant="ghost"
+            size="sm"
+            onClick={triggerLitigationReview}
+            disabled={!canRunAnalysis}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 min-h-8 rounded-md h-7 px-2 text-xs border border-slate-300 text-slate-600 hover:text-blue-700 bg-[#4d5e700f] pt-[0px] pb-[0px] mt-[5px] mb-[5px] pl-[8px] pr-[8px] ml-[5px] mr-[5px]"
+            title={hasReachedDailyLimit ? 'Daily limit reached — try again tomorrow' : 'Run AI case analysis'}
+            data-testid="button-ai-analysis"
+          >
+            <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
+            {getAnalysisButtonLabel()}
+          </Button>
         </div>
         <AnalysisUnlockChecklist />
         <h2 className="text-xl font-bold text-slate-900 mb-2 mt-3">{incident.title}</h2>
@@ -2182,7 +2172,7 @@ export default function IncidentView() {
               const hasAttachments = incidentPhotos.length > 0 || incidentDocs.length > 0;
               if (!hasAttachments) return null;
               return (
-                <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-center sm:justify-start overflow-hidden">
+                <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-end overflow-hidden">
                   {incidentPhotos.map((photo) => (
                     <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                       <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
@@ -2190,7 +2180,7 @@ export default function IncidentView() {
                           src={photo.fileUrl!} 
                           loading="lazy"
                           alt={photo.content}
-                          className="w-full h-full object-contain bg-slate-100 transition-transform group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <ImageIcon className="w-3 h-3 text-white" />
@@ -2322,14 +2312,14 @@ export default function IncidentView() {
                         color={color}
                       />
                       {hasAttachments && (
-                        <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-center sm:justify-start overflow-hidden">
+                        <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-end overflow-hidden">
                           {attachedPhotos.map((photo) => (
                             <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                               <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
                                 <ImageWithFallback
                                   src={photo.fileUrl!}
                                   alt={photo.content}
-                                  className="w-full h-full object-contain bg-slate-100 transition-transform group-hover:scale-105"
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <ImageIcon className="w-3 h-3 text-white" />
@@ -2394,7 +2384,7 @@ export default function IncidentView() {
                                   <ImageWithFallback
                                     src={file.fileUrl!}
                                     alt={file.content}
-                                    className="w-full h-full object-contain bg-slate-100 transition-transform group-hover:scale-105"
+                                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                   />
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <ImageIcon className="w-3 h-3 text-white" />
@@ -2525,7 +2515,7 @@ export default function IncidentView() {
                             src={photo.fileUrl!} 
                             loading="lazy"
                             alt={photo.content}
-                            className="w-full h-full object-contain bg-slate-100 transition-transform group-hover:scale-105"
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <ImageIcon className="w-3.5 h-3.5 text-white" />
@@ -2679,20 +2669,18 @@ export default function IncidentView() {
               <Download className={`w-3.5 h-3.5 mr-1 ${isExporting ? 'animate-pulse' : ''}`} />
               {isExporting ? 'Exporting...' : 'Export PDF'}
             </Button>
-            {hasEnoughEvidence && (
-              <Button 
-                variant="ghost"
-                size="sm"
-                onClick={triggerLitigationReview}
-                disabled={!canRunAnalysis}
-                className={`h-7 px-2 text-xs border border-slate-300 ${canRunAnalysis ? 'text-slate-600 hover:text-blue-700 bg-[#4d5e700f]' : 'text-slate-400 bg-slate-100 opacity-60 cursor-not-allowed'}`}
-                title={hasReachedDailyLimit ? 'Daily limit reached — try again tomorrow' : 'Run AI case analysis'}
-                data-testid="button-ai-analysis-desktop"
-              >
-                <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
-                {getAnalysisButtonLabel()}
-              </Button>
-            )}
+            <Button 
+              variant="ghost"
+              size="sm"
+              onClick={triggerLitigationReview}
+              disabled={!canRunAnalysis}
+              className={`h-7 px-2 text-xs border border-slate-300 ${canRunAnalysis ? 'text-slate-600 hover:text-blue-700 bg-[#4d5e700f]' : 'text-slate-400 bg-slate-100 opacity-60 cursor-not-allowed'}`}
+              title={hasReachedDailyLimit ? 'Daily limit reached — try again tomorrow' : 'Run AI case analysis'}
+              data-testid="button-ai-analysis-desktop"
+            >
+              <Bot className={`w-3.5 h-3.5 mr-1 ${isAnalyzing ? 'animate-pulse' : ''}`} />
+              {getAnalysisButtonLabel()}
+            </Button>
           </div>
           <AnalysisUnlockChecklist />
           <h2 className="text-xl font-bold text-slate-900 mb-2 mt-3">{incident.title}</h2>
@@ -2828,7 +2816,7 @@ export default function IncidentView() {
                                 src={photo.fileUrl!}
                                 loading="lazy"
                                 alt={photo.content}
-                                className="w-full h-full object-contain bg-slate-100 transition-transform group-hover:scale-105"
+                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
                               />
                               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <ImageIcon className="w-3 h-3 text-white" />
@@ -2947,14 +2935,14 @@ export default function IncidentView() {
                           color={color}
                         />
                         {hasAttachments && (
-                          <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-center sm:justify-start overflow-hidden">
+                          <div className="ml-3 border-l-2 border-slate-200 pl-2 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-end overflow-hidden">
                             {attachedPhotos.map((photo) => (
                             <ThumbnailWithDelete key={photo.id} onDelete={() => deleteMutation.mutate(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                               <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
                                 <ImageWithFallback
                                   src={photo.fileUrl!}
                                   alt={photo.content}
-                                  className="w-full h-full object-contain bg-slate-100 transition-transform group-hover:scale-105"
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <ImageIcon className="w-3 h-3 text-white" />
@@ -3013,7 +3001,7 @@ export default function IncidentView() {
                                       src={file.fileUrl!} 
                                       loading="lazy"
                                       alt={file.content}
-                                      className="w-full h-full object-contain bg-slate-100 transition-transform group-hover:scale-105"
+                                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                       <ImageIcon className="w-3 h-3 text-white" />
@@ -3866,17 +3854,17 @@ export default function IncidentView() {
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
       <Dialog open={previewUrl !== null} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent aria-describedby={undefined} className="w-[90%] max-h-[90vh] rounded-xl">
+        <DialogContent aria-describedby={undefined} className="w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto">
           <DialogHeader>
             <DialogTitle className="pt-[10px] pb-[10px]">{previewName}</DialogTitle>
             <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-center p-4">
+          <div className="flex items-center justify-center p-4 w-full">
             {previewType === 'image' ? (
               <ImageWithFallback
                 src={previewUrl || ''}
                 alt={previewName}
-                className="max-w-full max-h-[70vh] object-contain rounded-xl"
+                className="block mx-auto max-w-full max-h-[70vh] object-contain rounded-xl"
               />
             ) : (
               <div className="flex flex-col items-center gap-4">
