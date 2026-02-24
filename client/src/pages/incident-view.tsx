@@ -83,11 +83,6 @@ export default function IncidentView() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'document'>('image');
   const [previewName, setPreviewName] = useState("");
-  const [previewScale, setPreviewScale] = useState(1);
-  const [previewTranslate, setPreviewTranslate] = useState({ x: 0, y: 0 });
-  const pinchStartDistanceRef = useRef<number | null>(null);
-  const pinchStartScaleRef = useRef<number>(1);
-  const panStartRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
   
   // PDF Export state
   const [isExporting, setIsExporting] = useState(false);
@@ -916,10 +911,6 @@ export default function IncidentView() {
       setPreviewUrl(log.fileUrl);
       setPreviewType(isImage ? 'image' : 'document');
       setPreviewName(log.content);
-      if (isImage) {
-        setPreviewScale(1);
-        setPreviewTranslate({ x: 0, y: 0 });
-      }
     }
   };
 
@@ -3858,7 +3849,7 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Preview Dialog for Photos/Documents */}
-      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); setPreviewScale(1); setPreviewTranslate({ x: 0, y: 0 }); pinchStartDistanceRef.current = null; panStartRef.current = null; } }}>
+      <Dialog open={previewUrl !== null} onOpenChange={(open) => { if (!open) { setPreviewUrl(null); } }}>
         <DialogContent
           aria-describedby={undefined}
           className={previewType === 'image' ? "w-[98vw] max-w-none h-[96vh] max-h-[96vh] rounded-xl mx-auto p-1" : "w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto"}
@@ -3869,53 +3860,24 @@ export default function IncidentView() {
               <DialogDescription className="sr-only">Preview uploaded evidence file.</DialogDescription>
             </DialogHeader>
           )}
-          <div className={previewType === 'image' ? "flex items-center justify-center pt-10 px-1 pb-1 w-full h-full overflow-hidden" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
+          <div className={previewType === 'image' ? "flex items-center justify-center pt-12 px-1 pb-1 w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
             {previewType === 'image' ? (
-              <div
-                className="flex items-center justify-center w-full h-full overflow-hidden"
-                style={{ touchAction: 'none' }}
+              <button
+                type="button"
+                className="flex items-center justify-center w-full h-full"
                 onClick={(e) => {
                   const el = e.currentTarget;
-                  if (!document.fullscreenElement) el.requestFullscreen?.();
-                }}
-                onTouchStart={(e) => {
-                  if (e.touches.length === 2) {
-                    const [a, b] = [e.touches[0], e.touches[1]];
-                    pinchStartDistanceRef.current = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-                    pinchStartScaleRef.current = previewScale;
-                    panStartRef.current = null;
-                  } else if (e.touches.length === 1 && previewScale > 1) {
-                    const t = e.touches[0];
-                    panStartRef.current = { x: t.clientX, y: t.clientY, tx: previewTranslate.x, ty: previewTranslate.y };
+                  if (!document.fullscreenElement) {
+                    el.requestFullscreen?.();
                   }
-                }}
-                onTouchMove={(e) => {
-                  if (e.touches.length === 2 && pinchStartDistanceRef.current) {
-                    e.preventDefault();
-                    const [a, b] = [e.touches[0], e.touches[1]];
-                    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-                    const nextScale = Math.min(5, Math.max(1, pinchStartScaleRef.current * (dist / pinchStartDistanceRef.current)));
-                    setPreviewScale(nextScale);
-                  } else if (e.touches.length === 1 && panStartRef.current && previewScale > 1) {
-                    e.preventDefault();
-                    const t = e.touches[0];
-                    const dx = t.clientX - panStartRef.current.x;
-                    const dy = t.clientY - panStartRef.current.y;
-                    setPreviewTranslate({ x: panStartRef.current.tx + dx, y: panStartRef.current.ty + dy });
-                  }
-                }}
-                onTouchEnd={() => {
-                  pinchStartDistanceRef.current = null;
-                  panStartRef.current = null;
                 }}
               >
                 <ImageWithFallback
                   src={previewUrl || ''}
                   alt={previewName}
                   className="block mx-auto h-auto max-w-full max-h-[88vh] object-contain rounded-lg"
-                  style={{ transform: `translate(${previewTranslate.x}px, ${previewTranslate.y}px) scale(${previewScale})`, transformOrigin: 'center center' }}
                 />
-              </div>
+              </button>
             ) : (
               <div className="flex flex-col items-center gap-4">
                 <Paperclip className="w-16 h-16 text-slate-400" />
