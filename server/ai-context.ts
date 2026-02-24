@@ -57,10 +57,11 @@ const MAX_ROUTINE_ITEMS = 50;
 
 export function assembleContextTwoPasses(
   logs: IncidentLog[],
-  options?: { maxRoutine?: number; recentDays?: number }
+  options?: { maxRoutine?: number; recentDays?: number; includeBackfill?: boolean }
 ): { critical: StructuredTimelineEntry[]; recent: StructuredTimelineEntry[]; backfill: StructuredTimelineEntry[]; included: StructuredTimelineEntry[] } {
   const maxRoutine = options?.maxRoutine ?? MAX_ROUTINE_ITEMS;
   const recentDays = options?.recentDays ?? RECENT_WINDOW_DAYS;
+  const includeBackfill = options?.includeBackfill ?? false;
 
   const evidenceLogs = logs.filter((l) => EVIDENCE_TYPES.includes(l.type));
   const now = Date.now();
@@ -86,8 +87,11 @@ export function assembleContextTwoPasses(
 
   const backfill = olderRoutineItems.slice(-maxRoutine);
 
-  const included = [...criticalItems, ...recentItems, ...backfill]
-    .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+  const included = [
+    ...criticalItems,
+    ...recentItems,
+    ...(includeBackfill ? backfill : []),
+  ].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
 
   return { critical: criticalItems, recent: recentItems, backfill, included };
 }
