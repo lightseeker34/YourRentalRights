@@ -4049,8 +4049,8 @@ export default function IncidentView() {
               </div>
             )}
             {chatLogs.map((log) => (
-              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 ${log.isAi ? 'max-w-full md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
+              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex min-w-0 gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[85%]' : 'max-w-[75%] md:max-w-[85%]'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
@@ -4339,13 +4339,13 @@ export default function IncidentView() {
                   )}
                   {editLogId !== log.id && (
                     <>
-                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 overflow-hidden mt-[10px] mb-[10px] pt-[8px] pb-[8px] ${
+                              <div className={`p-4 rounded-xl text-sm leading-relaxed transition-all duration-500 overflow-hidden mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 [overflow-wrap:anywhere] ${
                                 log.isAi 
                                   ? "bg-transparent text-slate-700" 
-                                  : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm"
+                                  : "bg-[var(--color-user-bubble)] text-slate-600 font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words"
                               }`}>
                         {log.isAi ? (
-                          <div style={{ fontFamily: 'var(--font-chat)' }}>
+                          <div className="min-w-0 break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
                             <ReactMarkdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
@@ -4383,15 +4383,15 @@ export default function IncidentView() {
                                 blockquote: ({children}) => <blockquote className="border-l-2 border-slate-300 pl-3 italic my-2">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 table: ({children}) => (
-                                  <div className="overflow-x-auto my-3">
-                                    <table className="min-w-full border-collapse border border-slate-300 text-sm">{children}</table>
+                                  <div className="w-full max-w-full my-3">
+                                    <table className="w-full table-fixed border-collapse border border-slate-300 text-sm">{children}</table>
                                   </div>
                                 ),
                                 thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
                                 tbody: ({children}) => <tbody>{children}</tbody>,
                                 tr: ({children}) => <tr className="border-b border-slate-200">{children}</tr>,
-                                th: ({children}) => <th className="border border-slate-300 px-3 py-2 text-left font-bold bg-slate-100">{children}</th>,
-                                td: ({children}) => <td className="border border-slate-300 px-3 py-2">{children}</td>,
+                                th: ({children}) => <th className="border border-slate-300 px-3 py-2 text-left font-bold bg-slate-100 align-top break-words [overflow-wrap:anywhere]">{children}</th>,
+                                td: ({children}) => <td className="border border-slate-300 px-3 py-2 align-top break-words [overflow-wrap:anywhere]">{children}</td>,
                               }}
                             >
                               {log.content}
