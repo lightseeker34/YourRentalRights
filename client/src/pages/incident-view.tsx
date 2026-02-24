@@ -932,6 +932,7 @@ export default function IncidentView() {
   }) || [], [logs]);
 
   const getMetaCategory = (log: IncidentLog) => (log.metadata as any)?.category;
+  const isAnalysisPdf = (log: IncidentLog) => getMetaCategory(log) === "analysis_pdf";
 
   const { allPhotos, allDocuments, photos, documents } = useMemo(() => {
     const allPhotos = logs?.filter(l => l.type === 'photo') || [];
@@ -1041,13 +1042,27 @@ export default function IncidentView() {
     }
     
     const standaloneDocuments = allDocuments.filter(d => !usedDocIds.has(d.id));
-    if (standaloneDocuments.length > 0) {
+    const analysisPdfs = standaloneDocuments.filter(d => getMetaCategory(d) === 'analysis_pdf');
+    const regularDocuments = standaloneDocuments.filter(d => getMetaCategory(d) !== 'analysis_pdf');
+
+    if (analysisPdfs.length > 0) {
+      groups.push({
+        id: 'analysis-pdfs',
+        label: 'AI Analysis PDFs',
+        icon: Bot,
+        color: 'text-violet-600',
+        files: analysisPdfs,
+        type: 'analysis_pdf'
+      });
+    }
+
+    if (regularDocuments.length > 0) {
       groups.push({
         id: 'documents',
         label: 'Documents',
         icon: Paperclip,
         color: 'text-slate-500',
-        files: standaloneDocuments,
+        files: regularDocuments,
         type: 'document'
       });
     }
@@ -2320,9 +2335,16 @@ export default function IncidentView() {
                           ))}
                           {attachedDocs.map((doc) => (
                             <ThumbnailWithDelete key={doc.id} onDelete={() => deleteMutation.mutate(doc.id)} onPreview={() => openPreview(doc)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
-                              <Card className="w-full h-full relative group overflow-hidden border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md">
-                                <Paperclip className="w-4 h-4 text-slate-500" />
-                              </Card>
+                              {isAnalysisPdf(doc) ? (
+                                <Card className="w-full h-full relative flex items-center justify-center border-violet-200 bg-violet-50 rounded-md">
+                                  <Bot className="w-4 h-4 text-violet-600" />
+                                  <span className="absolute -bottom-0.5 -right-0.5 text-[8px] px-1 py-[1px] rounded bg-violet-600 text-white font-semibold">PDF</span>
+                                </Card>
+                              ) : (
+                                <Card className="w-full h-full relative group overflow-hidden border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md">
+                                  <Paperclip className="w-4 h-4 text-slate-500" />
+                                </Card>
+                              )}
                             </ThumbnailWithDelete>
                           ))}
                         </div>
@@ -2377,9 +2399,16 @@ export default function IncidentView() {
                               </ThumbnailWithDelete>
                             ) : (
                               <ThumbnailWithDelete key={file.id} onDelete={() => deleteMutation.mutate(file.id)} onPreview={() => openPreview(file)} className="aspect-square overflow-hidden cursor-pointer rounded-md">
-                                <Card className="w-full h-full flex items-center justify-center hover:bg-slate-50 border-slate-200 rounded-md">
-                                  <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
-                                </Card>
+                                {isAnalysisPdf(file) ? (
+                                  <Card className="w-full h-full relative flex items-center justify-center border-violet-200 bg-violet-50 rounded-md">
+                                    <Bot className="w-4 h-4 text-violet-600" />
+                                    <span className="absolute -bottom-0.5 -right-0.5 text-[8px] px-1 py-[1px] rounded bg-violet-600 text-white font-semibold">PDF</span>
+                                  </Card>
+                                ) : (
+                                  <Card className="w-full h-full flex items-center justify-center hover:bg-slate-50 border-slate-200 rounded-md">
+                                    <Paperclip className="w-4 h-4 text-slate-500 shrink-0" />
+                                  </Card>
+                                )}
                               </ThumbnailWithDelete>
                             )
                           ))}
