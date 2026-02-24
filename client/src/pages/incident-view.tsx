@@ -4383,15 +4383,15 @@ export default function IncidentView() {
                                 blockquote: ({children}) => <blockquote className="border-l-2 border-slate-300 pl-3 italic my-2">{children}</blockquote>,
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 table: ({children}) => (
-                                  <div className="w-full max-w-full my-3">
-                                    <table className="w-full table-fixed border-collapse border border-slate-300 text-sm">{children}</table>
+                                  <div className="w-full max-w-full overflow-x-auto my-3">
+                                    <table className="min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
                                   </div>
                                 ),
                                 thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
                                 tbody: ({children}) => <tbody>{children}</tbody>,
                                 tr: ({children}) => <tr className="border-b border-slate-200">{children}</tr>,
-                                th: ({children}) => <th className="border border-slate-300 px-3 py-2 text-left font-bold bg-slate-100 align-top break-words [overflow-wrap:anywhere]">{children}</th>,
-                                td: ({children}) => <td className="border border-slate-300 px-3 py-2 align-top break-words [overflow-wrap:anywhere]">{children}</td>,
+                                th: ({children}) => <th className="border border-slate-300 px-3 py-2 text-left font-bold bg-slate-100 align-top whitespace-nowrap">{children}</th>,
+                                td: ({children}) => <td className="border border-slate-300 px-3 py-2 align-top whitespace-nowrap">{children}</td>,
                               }}
                             >
                               {log.content}
