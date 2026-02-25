@@ -256,6 +256,13 @@ export async function exportToPDF({
       }
     };
 
+    const getFetchableImageUrl = (log: IncidentLog): string | null => {
+      const meta = log.metadata && typeof log.metadata === 'object' ? (log.metadata as any) : null;
+      const r2Key = meta?.r2Key as string | undefined;
+      if (r2Key) return `/api/r2/${encodeURIComponent(r2Key)}`;
+      return log.fileUrl || null;
+    };
+
     const loadImageAsBase64 = async (url: string): Promise<string | null> => {
       try {
         const response = await fetch(url, { credentials: 'include' });
@@ -370,20 +377,25 @@ export async function exportToPDF({
           yPos += contentLines.length * 4 + 3;
         }
 
-        if (log.type === 'photo' && log.fileUrl) {
-          checkPageBreak(60);
-          const imgData = await loadImageAsBase64(log.fileUrl);
-          if (imgData) {
-            try {
-              const imgWidth = 60;
-              const imgHeight = 45;
-              pdf.addImage(imgData, getPdfImageFormat(imgData), margin, yPos, imgWidth, imgHeight);
-              yPos += imgHeight + 5;
-            } catch {
-              pdf.setFontSize(9);
-              pdf.setTextColor(150, 150, 150);
-              pdf.text('[Image could not be embedded]', margin, yPos);
-              yPos += 5;
+        if (log.type === 'photo') {
+          const imageUrl = getFetchableImageUrl(log);
+          if (!imageUrl) {
+            yPos += 2;
+          } else {
+            checkPageBreak(60);
+            const imgData = await loadImageAsBase64(imageUrl);
+            if (imgData) {
+              try {
+                const imgWidth = 60;
+                const imgHeight = 45;
+                pdf.addImage(imgData, getPdfImageFormat(imgData), margin, yPos, imgWidth, imgHeight);
+                yPos += imgHeight + 5;
+              } catch {
+                pdf.setFontSize(9);
+                pdf.setTextColor(150, 150, 150);
+                pdf.text('[Image could not be embedded]', margin, yPos);
+                yPos += 5;
+              }
             }
           }
         }
@@ -408,8 +420,9 @@ export async function exportToPDF({
 
             for (const photo of associatedPhotos) {
               checkPageBreak(55);
-              if (photo.fileUrl) {
-                const imgData = await loadImageAsBase64(photo.fileUrl);
+              const photoUrl = getFetchableImageUrl(photo);
+              if (photoUrl) {
+                const imgData = await loadImageAsBase64(photoUrl);
                 if (imgData) {
                   try {
                     const imgWidth = 50;
