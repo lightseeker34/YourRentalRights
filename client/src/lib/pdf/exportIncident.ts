@@ -45,7 +45,7 @@ export async function exportToPDF({
       cleaned = cleaned.replace(/&gt;/g, '>');
       cleaned = cleaned.replace(/&nbsp;/g, ' ');
       cleaned = cleaned.replace(/```[\s\S]*?```/g, (match) => {
-        return match.replace(/```\w*\n?/g, '').replace(/```/g, '');
+        return match.replace(/```,""\w*\n?/g, '').replace(/```/g, '');
       });
       try {
         const emojiReplacements: [RegExp, string][] = [
@@ -309,7 +309,7 @@ export async function exportToPDF({
 
     pdf.setTextColor(100, 116, 139);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`Created: ${format(new Date(incident.createdAt), 'MMMM d, yyyy 'at' h:mm a')}`, margin + 30, yPos);
+    pdf.text(`Created: ${format(new Date(incident.createdAt), "MMMM d, yyyy 'at' h:mm a")}`, margin + 30, yPos);
     yPos += 10;
 
     if (incident.description) {
@@ -429,7 +429,7 @@ export async function exportToPDF({
         pdf.setFontSize(9);
         pdf.setFont('helvetica', 'italic');
         pdf.setTextColor(100, 116, 139);
-        pdf.text(format(new Date(log.createdAt), 'MMMM d, yyyy 'at' h:mm a'), margin, yPos);
+        pdf.text(format(new Date(log.createdAt), 'MMMM d, yyyy \'at\' h:mm a'), margin, yPos);
         yPos += 5;
 
         if (log.content) {
