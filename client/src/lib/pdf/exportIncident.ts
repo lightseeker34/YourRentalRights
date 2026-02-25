@@ -272,6 +272,12 @@ export async function exportToPDF({
       }
     };
 
+    const getPdfImageFormat = (dataUrl: string): 'JPEG' | 'PNG' | 'WEBP' => {
+      if (dataUrl.startsWith('data:image/png')) return 'PNG';
+      if (dataUrl.startsWith('data:image/webp')) return 'WEBP';
+      return 'JPEG';
+    };
+
     // Title
     pdf.setFontSize(22);
     pdf.setFont('helvetica', 'bold');
@@ -371,7 +377,7 @@ export async function exportToPDF({
             try {
               const imgWidth = 60;
               const imgHeight = 45;
-              pdf.addImage(imgData, 'JPEG', margin, yPos, imgWidth, imgHeight);
+              pdf.addImage(imgData, getPdfImageFormat(imgData), margin, yPos, imgWidth, imgHeight);
               yPos += imgHeight + 5;
             } catch {
               pdf.setFontSize(9);
@@ -408,7 +414,7 @@ export async function exportToPDF({
                   try {
                     const imgWidth = 50;
                     const imgHeight = 37.5;
-                    pdf.addImage(imgData, 'JPEG', margin + 5, yPos, imgWidth, imgHeight);
+                    pdf.addImage(imgData, getPdfImageFormat(imgData), margin + 5, yPos, imgWidth, imgHeight);
                     yPos += imgHeight + 3;
                   } catch {
                     pdf.text('[Image could not be embedded]', margin + 5, yPos);
