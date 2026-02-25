@@ -2186,7 +2186,7 @@ export default function IncidentView() {
       </Dialog>
       {/* Chat Area */}
       <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col">
-        <ScrollArea ref={scrollRef} className="relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pb-[0px]">
+        <ScrollArea ref={scrollRef} className="chat-scroll-area relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pb-[0px]">
           <div className="w-full min-w-0 max-w-3xl mx-auto space-y-6 pb-28 md:pb-6 overflow-x-hidden">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-16 md:mt-6 mb-6" data-testid="chat-empty-state">

@@ -142,6 +142,14 @@
   }
 }
 
+/* Prevent Radix ScrollArea's display:table content wrapper from allowing
+   horizontal expansion in the chat area. This ensures w-full / max-w-full
+   constraints on chat messages are relative to the viewport width, so tables
+   scroll inside their own wrapper instead of pushing all content off-screen. */
+.chat-scroll-area [data-radix-scroll-area-viewport] > div {
+  display: block !important;
+}
+
 /* Chat bubble content overflow fix for mobile */
 @media (max-width: 767px) {
   .prose {
