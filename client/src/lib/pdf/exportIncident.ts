@@ -366,17 +366,31 @@ export async function exportToPDF({
       }
     };
 
-    const evidenceLogs = logs.filter(l =>
-      l.type === 'call' || l.type === 'text' || l.type === 'email' || l.type === 'service' || l.type === 'note'
-    ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
     const incidentPhotos = logs.filter(p => {
       if (p.type !== 'photo') return false;
       const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
       return meta?.category === 'incident_photo' || (!meta?.parentLogId && !meta?.category);
     }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    if (evidenceLogs.length > 0 || incidentPhotos.length > 0) {
+    if (incidentPhotos.length > 0) {
+      checkPageBreak(30);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(30, 41, 59);
+      pdf.text('CASE EVIDENCE PHOTOS', margin, yPos);
+      yPos += 6;
+      await renderPhotoGrid(incidentPhotos, 0);
+      yPos += 8;
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 10;
+    }
+
+    const evidenceLogs = logs.filter(l =>
+      l.type === 'call' || l.type === 'text' || l.type === 'email' || l.type === 'service' || l.type === 'note'
+    ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    if (evidenceLogs.length > 0) {
       checkPageBreak(15);
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
@@ -437,25 +451,10 @@ export async function exportToPDF({
           await renderPhotoGrid(attachedPhotos, 0);
         }
 
-        yPos += 6;
-      }
-
-      if (incidentPhotos.length > 0) {
-        checkPageBreak(24);
-        pdf.setFontSize(11);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(59, 130, 246);
-        pdf.text('[INCIDENT]', margin, yPos);
-        yPos += 5;
-
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'italic');
-        pdf.setTextColor(100, 116, 139);
-        pdf.text('Attached Photo(s):', margin, yPos);
         yPos += 4;
-
-        await renderPhotoGrid(incidentPhotos, 0);
-        yPos += 4;
+        pdf.setDrawColor(230, 230, 230);
+        pdf.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
       }
     }
 
