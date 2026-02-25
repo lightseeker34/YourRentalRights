@@ -45,7 +45,7 @@ export async function exportToPDF({
       cleaned = cleaned.replace(/&gt;/g, '>');
       cleaned = cleaned.replace(/&nbsp;/g, ' ');
       cleaned = cleaned.replace(/```[\s\S]*?```/g, (match) => {
-        return match.replace(/```,""\w*\n?/g, '').replace(/```/g, '');
+        return match.replace(/```\w*\n?/g, '').replace(/```/g, '');
       });
       try {
         const emojiReplacements: [RegExp, string][] = [
@@ -317,7 +317,7 @@ export async function exportToPDF({
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Description', margin, yPos);
+      pdf.text('INCIDENT SUMMARY', margin, yPos);
       yPos += 6;
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
@@ -330,11 +330,12 @@ export async function exportToPDF({
     pdf.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 10;
 
-    const renderPhotoGrid = async (photos: IncidentLog[], leftIndent = 0) => {
+    const renderPhotoGrid = async (photos: IncidentLog[], leftIndent = 0, showCaption = false) => {
       const unique = photos.filter((p, idx, arr) => arr.findIndex(x => x.id === p.id) === idx);
       const cellWidth = 82;
-      const cellHeight = 58;
+      const cellHeight = showCaption ? 62 : 58;
       const gap = 8;
+      const captionHeight = showCaption ? 6 : 0;
       let col = 0;
 
       for (const photo of unique) {
@@ -344,7 +345,7 @@ export async function exportToPDF({
         if (!imgData) continue;
 
         const x = margin + leftIndent + (col === 0 ? 0 : cellWidth + gap);
-        checkPageBreak(cellHeight + 6);
+        checkPageBreak(cellHeight + captionHeight + 6);
         try {
           pdf.addImage(imgData, getPdfImageFormat(imgData), x, yPos, cellWidth, cellHeight);
         } catch {
@@ -353,16 +354,23 @@ export async function exportToPDF({
           pdf.text('[Image could not be embedded]', x, yPos + 6);
         }
 
+        if (showCaption) {
+          const caption = (photo.content || 'Photo').slice(0, 40);
+          pdf.setFontSize(7);
+          pdf.setTextColor(90, 90, 90);
+          pdf.text(caption, x, yPos + cellHeight + 4);
+        }
+
         if (col === 0) {
           col = 1;
         } else {
           col = 0;
-          yPos += cellHeight + 4;
+          yPos += cellHeight + captionHeight + 6;
         }
       }
 
       if (col === 1) {
-        yPos += cellHeight + 4;
+        yPos += cellHeight + captionHeight + 6;
       }
     };
 
@@ -387,7 +395,12 @@ export async function exportToPDF({
       pdf.setTextColor(30, 41, 59);
       pdf.text('CASE EVIDENCE PHOTOS', margin, yPos);
       yPos += 6;
-      await renderPhotoGrid(incidentPhotos, 0);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(90, 90, 90);
+      pdf.text('Primary incident evidence photos (chronological).', margin, yPos);
+      yPos += 6;
+      await renderPhotoGrid(incidentPhotos, 0, true);
       yPos += 8;
       pdf.setDrawColor(200, 200, 200);
       pdf.line(margin, yPos, pageWidth - margin, yPos);
@@ -408,7 +421,7 @@ export async function exportToPDF({
       pdf.setTextColor(0, 0, 0);
 
       for (const log of evidenceLogs) {
-        checkPageBreak(30);
+        checkPageBreak(36);
 
         const typeLabel = log.type === 'call' ? '[CALL]' :
                          log.type === 'text' ? '[TEXT]' :
@@ -426,17 +439,23 @@ export async function exportToPDF({
         }
         yPos += 5;
 
+        const meta = log.metadata && typeof log.metadata === 'object' ? (log.metadata as any) : null;
+        const severity = meta?.severity ? String(meta.severity) : 'Routine';
         pdf.setFontSize(9);
         pdf.setFont('helvetica', 'italic');
-        pdf.setTextColor(100, 116, 139);
-        pdf.text(format(new Date(log.createdAt), 'MMMM d, yyyy \'at\' h:mm a'), margin, yPos);
-        yPos += 5;
+        pdf.setTextColor(120, 130, 140);
+        const metaLine = `Logged: ${format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")} • Severity: ${severity}`;
+        const metaLines = pdf.splitTextToSize(metaLine, contentWidth);
+        checkPageBreak(metaLines.length * 4 + 4);
+        pdf.text(metaLines, margin, yPos);
+        yPos += metaLines.length * 4 + 2;
 
         if (log.content) {
           pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(10);
           pdf.setTextColor(0, 0, 0);
           const contentLines = pdf.splitTextToSize(cleanText(log.content), contentWidth);
+          checkPageBreak(contentLines.length * 4 + 4);
           pdf.text(contentLines, margin, yPos);
           yPos += contentLines.length * 4 + 3;
         }
@@ -444,9 +463,9 @@ export async function exportToPDF({
         const logCategory = `${log.type}_photo`;
         const attachedPhotos = logs.filter(p => {
           if (p.type !== 'photo') return false;
-          const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
-          const parentMatch = meta?.parentLogId === log.id;
-          const categoryMatch = meta?.category === logCategory;
+          const pMeta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
+          const parentMatch = pMeta?.parentLogId === log.id;
+          const categoryMatch = pMeta?.category === logCategory;
           return parentMatch || categoryMatch;
         });
 
@@ -454,13 +473,14 @@ export async function exportToPDF({
           pdf.setFontSize(9);
           pdf.setFont('helvetica', 'italic');
           pdf.setTextColor(100, 116, 139);
-          pdf.text('Attached Photo(s):', margin, yPos);
+          pdf.text('Attached photo(s):', margin, yPos);
           yPos += 4;
-          await renderPhotoGrid(attachedPhotos, 0);
+          await renderPhotoGrid(attachedPhotos, 6, true);
         }
 
         yPos += 4;
-        pdf.setDrawColor(230, 230, 230);
+        pdf.setDrawColor(220, 220, 220);
+        pdf.setLineWidth(0.2);
         pdf.line(margin, yPos, pageWidth - margin, yPos);
         yPos += 8;
       }
