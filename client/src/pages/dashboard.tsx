@@ -1189,6 +1189,13 @@ export default function Dashboard() {
     },
     onSuccess: ({ uploadFailures }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+      // Scroll to top/start to show the new incident
+      if (carouselRef.current) {
+        carouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        setCurrentIndex(0);
+      }
+      scrollToIndex(0);
+      
       if (uploadFailures > 0) {
         toast({ title: "Log Created", description: `Timeline started, but ${uploadFailures} photo(s) failed to upload.`, variant: "destructive" });
       } else {

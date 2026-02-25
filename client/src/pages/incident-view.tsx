@@ -240,8 +240,10 @@ export default function IncidentView() {
   const hasUnlockRequirements = hasEnoughEvidence;
 
   // Auto-focus chat input when no messages (shows blinking cursor)
-  const chatLogsCount = logs?.filter(l => l.type === 'chat').length || 0;
-  const shouldAutoFocus = chatLogsCount === 0;
+  // DISABLED per user request to prevent keyboard popup on mobile
+  // const chatLogsCount = logs?.filter(l => l.type === 'chat').length || 0;
+  // const shouldAutoFocus = chatLogsCount === 0;
+  const shouldAutoFocus = false;
 
   useEffect(() => {
     if (incident) {
