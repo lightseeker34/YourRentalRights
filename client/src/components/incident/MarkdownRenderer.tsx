@@ -61,8 +61,8 @@ export const MarkdownRenderer = memo(({ content, isAi = false }: MarkdownRendere
           // 2. Table has `min-w-full` to ensure it fills the wrapper but can grow
           // 3. Cells have `min-w-[100px]` to force horizontal scroll on small screens instead of squishing
           table: ({children}) => (
-            <div className="w-full overflow-x-auto my-4 border rounded-lg shadow-sm bg-white block">
-              <table className="min-w-full border-collapse text-sm text-left">{children}</table>
+            <div className="w-full max-w-full overflow-x-auto my-4 border rounded-lg shadow-sm bg-white block" style={{ maxWidth: '100%' }}>
+              <table className="min-w-full border-collapse text-sm text-left table-auto w-full">{children}</table>
             </div>
           ),
           thead: ({children}) => <thead className="bg-slate-50 border-b border-slate-200">{children}</thead>,
