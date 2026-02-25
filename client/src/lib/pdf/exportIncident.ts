@@ -309,7 +309,7 @@ export async function exportToPDF({
 
     pdf.setTextColor(100, 116, 139);
     pdf.setFont('helvetica', 'normal');
-    pdf.text(`Created: ${format(new Date(incident.createdAt), 'MMMM d, yyyy \'at\' h:mm a')}`, margin + 30, yPos);
+    pdf.text(`Created: ${format(new Date(incident.createdAt), 'MMMM d, yyyy 'at' h:mm a')}`, margin + 30, yPos);
     yPos += 10;
 
     if (incident.description) {
@@ -366,11 +366,19 @@ export async function exportToPDF({
       }
     };
 
-    const incidentPhotos = logs.filter(p => {
-      if (p.type !== 'photo') return false;
-      const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
-      return meta?.category === 'incident_photo' || (!meta?.parentLogId && !meta?.category);
-    }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const incidentPhotos = logs
+      .filter(p => {
+        if (p.type !== 'photo') return false;
+        const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
+        const category = meta?.category;
+        const parentLogId = meta?.parentLogId;
+        if (category === 'incident_photo') return true;
+        if (parentLogId) return false;
+        if (category && category !== 'incident_photo') return false;
+        // Allow legacy uncategorized standalone photos to remain in the main incident section
+        return true;
+      })
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     if (incidentPhotos.length > 0) {
       checkPageBreak(30);
@@ -421,7 +429,7 @@ export async function exportToPDF({
         pdf.setFontSize(9);
         pdf.setFont('helvetica', 'italic');
         pdf.setTextColor(100, 116, 139);
-        pdf.text(format(new Date(log.createdAt), 'MMMM d, yyyy \'at\' h:mm a'), margin, yPos);
+        pdf.text(format(new Date(log.createdAt), 'MMMM d, yyyy 'at' h:mm a'), margin, yPos);
         yPos += 5;
 
         if (log.content) {
