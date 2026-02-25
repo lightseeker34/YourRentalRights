@@ -5,8 +5,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bot, Send, User } from "lucide-react";
 import { motion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 type Message = {
   role: "agent" | "user";
@@ -77,33 +75,8 @@ export default function AgentInteraction() {
                   m.role === "agent" 
                     ? "bg-white border border-slate-200 text-slate-800" 
                     : "bg-slate-800 text-white"
-                }`} style={{ fontFamily: 'var(--font-chat)' }}>
-                  {m.role === "agent" ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
-                        ul: ({children}) => <ul className="list-disc pl-4 mb-2">{children}</ul>,
-                        ol: ({children}) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
-                        li: ({children}) => <li className="mb-1">{children}</li>,
-                        strong: ({children}) => <strong className="font-bold">{children}</strong>,
-                        table: ({children}) => (
-                          <div className="overflow-x-auto my-3 rounded-lg border border-slate-200">
-                            <table className="min-w-full text-sm border-collapse">{children}</table>
-                          </div>
-                        ),
-                        thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
-                        tbody: ({children}) => <tbody>{children}</tbody>,
-                        tr: ({children}) => <tr className="border-b border-slate-200">{children}</tr>,
-                        th: ({children}) => <th className="px-3 py-2 text-left font-semibold bg-slate-100 border-b border-slate-200 whitespace-nowrap">{children}</th>,
-                        td: ({children}) => <td className="px-3 py-2 border-b border-slate-100 whitespace-nowrap">{children}</td>,
-                      }}
-                    >
-                      {m.content}
-                    </ReactMarkdown>
-                  ) : (
-                    m.content
-                  )}
+                }`}>
+                  {m.content}
                 </div>
               </motion.div>
             ))}

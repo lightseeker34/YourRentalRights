@@ -152,23 +152,14 @@
     max-width: 100%;
     overflow-x: auto;
   }
+  .prose table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
   .prose code {
     word-break: break-all;
   }
-}
-
-/* Table overflow fix for all screen sizes */
-.prose table {
-  display: block;
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-.chat-table-wrapper {
-  overflow-x: auto;
-  max-width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
 }
 
 /* Hide all scrollbars on mobile */

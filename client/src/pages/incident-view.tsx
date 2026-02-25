@@ -2490,8 +2490,8 @@ export default function IncidentView() {
                     <>
                               <div className={`p-4 rounded-xl transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full [overflow-wrap:anywhere] ${
                                 log.isAi 
-                                  ? "bg-transparent text-slate-700 text-sm leading-relaxed" 
-                                  : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm break-words max-w-full"
+                                  ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed" 
+                                  : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words max-w-full"
                               }`}>
                         {log.isAi ? (
                           <div className="w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere] px-[20px] md:px-0" style={{ fontFamily: 'var(--font-chat)' }}>
@@ -2533,51 +2533,23 @@ export default function IncidentView() {
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 a: ({children, href}) => <a href={href} className="text-blue-700 underline break-all" target="_blank" rel="noreferrer">{children}</a>,
                                 table: ({children}) => (
-                                  <div className="overflow-x-auto my-3 rounded-lg border border-slate-200">
-                                    <table className="min-w-full text-sm border-collapse">{children}</table>
+                                  <div className="w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain my-3 -mx-2 px-2 pb-1">
+                                    <table className="table-auto min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
                                   </div>
                                 ),
                                 thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
                                 tbody: ({children}) => <tbody>{children}</tbody>,
                                 tr: ({children}) => <tr className="border-b border-slate-200">{children}</tr>,
-                                th: ({children}) => <th className="px-3 py-2 text-left font-semibold bg-slate-100 border-b border-slate-200 whitespace-nowrap">{children}</th>,
-                                td: ({children}) => <td className="px-3 py-2 border-b border-slate-100 whitespace-nowrap">{children}</td>,
+                                th: ({children}) => <th className="border border-slate-300 px-3 py-2 text-left font-bold bg-slate-100 align-top whitespace-nowrap">{children}</th>,
+                                td: ({children}) => <td className="border border-slate-300 px-3 py-2 align-top whitespace-nowrap">{children}</td>,
                               }}
                             >
                               {log.content}
                             </ReactMarkdown>
                           </div>
                         ) : (
-                          <div className="w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere]" style={{ fontFamily: 'var(--font-chat)' }}>
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                p: ({children}) => <p className="mb-2 last:mb-0 break-words [overflow-wrap:anywhere]">{children}</p>,
-                                ul: ({children}) => <ul className="list-disc pl-4 mb-2 break-words [overflow-wrap:anywhere]">{children}</ul>,
-                                ol: ({children}) => <ol className="list-decimal pl-4 mb-2 break-words [overflow-wrap:anywhere]">{children}</ol>,
-                                li: ({children}) => <li className="mb-1 break-words [overflow-wrap:anywhere]">{children}</li>,
-                                strong: ({children}) => <strong className="font-bold">{children}</strong>,
-                                em: ({children}) => <em className="italic">{children}</em>,
-                                code: ({children, className}) => {
-                                  const isInline = !className;
-                                  return isInline
-                                    ? <code className="bg-slate-200 px-1 py-0.5 rounded text-xs break-all">{children}</code>
-                                    : <code className="block bg-slate-200 p-2 rounded text-xs overflow-x-auto my-2">{children}</code>;
-                                },
-                                table: ({children}) => (
-                                  <div className="overflow-x-auto my-3 rounded-lg border border-slate-200">
-                                    <table className="min-w-full text-sm border-collapse">{children}</table>
-                                  </div>
-                                ),
-                                thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
-                                tbody: ({children}) => <tbody>{children}</tbody>,
-                                tr: ({children}) => <tr className="border-b border-slate-200">{children}</tr>,
-                                th: ({children}) => <th className="px-3 py-2 text-left font-semibold bg-slate-100 border-b border-slate-200 whitespace-nowrap">{children}</th>,
-                                td: ({children}) => <td className="px-3 py-2 border-b border-slate-100 whitespace-nowrap">{children}</td>,
-                              }}
-                            >
-                              {log.content}
-                            </ReactMarkdown>
+                          <>
+                            {log.content}
                             {/* Show attachment thumbnails for user messages */}
                             {(log.metadata as any)?.attachedImages?.length > 0 && (
                               <div className="flex gap-1 mt-2 flex-wrap max-w-full overflow-hidden">
@@ -2604,7 +2576,7 @@ export default function IncidentView() {
                                 ))}
                               </div>
                             )}
-                          </div>
+                          </>
                         )}
                       </div>
                       <div className="flex items-center gap-2 pt-[0px] pb-[0px] justify-end mt-[0px] mb-[0px] min-w-0 flex-wrap">
