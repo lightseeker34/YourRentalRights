@@ -258,7 +258,8 @@ export async function exportToPDF({
 
     const loadImageAsBase64 = async (url: string): Promise<string | null> => {
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, { credentials: 'include' });
+        if (!response.ok) return null;
         const blob = await response.blob();
         return new Promise((resolve) => {
           const reader = new FileReader();
@@ -334,7 +335,8 @@ export async function exportToPDF({
 
         const typeLabel = log.type === 'call' ? '[CALL]' :
                          log.type === 'text' ? '[TEXT]' :
-                         log.type === 'email' ? '[EMAIL]' : '[PHOTO]';
+                         log.type === 'email' ? '[EMAIL]' :
+                         log.type === 'service' ? '[SERVICE]' : '[PHOTO]';
 
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
@@ -382,14 +384,15 @@ export async function exportToPDF({
 
         if (log.type !== 'photo') {
           const logCategory = `${log.type}_photo`;
-          const associatedPhotos = logs.filter(p =>
-            p.type === 'photo' &&
-            p.metadata &&
-            typeof p.metadata === 'object' &&
-            (p.metadata as any).category === logCategory &&
-            new Date(p.createdAt).getTime() - new Date(log.createdAt).getTime() < 60000 &&
-            new Date(p.createdAt).getTime() - new Date(log.createdAt).getTime() >= 0
-          );
+          const associatedPhotos = logs.filter(p => {
+            if (p.type !== 'photo') return false;
+            const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
+            const parentMatch = meta?.parentLogId === log.id;
+            const categoryAndTimeMatch =
+              meta?.category === logCategory &&
+              Math.abs(new Date(p.createdAt).getTime() - new Date(log.createdAt).getTime()) <= 10 * 60 * 1000;
+            return parentMatch || categoryAndTimeMatch;
+          });
           if (associatedPhotos.length > 0) {
             pdf.setFontSize(9);
             pdf.setFont('helvetica', 'italic');
