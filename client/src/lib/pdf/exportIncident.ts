@@ -330,11 +330,53 @@ export async function exportToPDF({
     pdf.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 10;
 
-    const chronologicalLogs = logs.filter(l =>
-      l.type === 'call' || l.type === 'text' || l.type === 'email' || l.type === 'photo' || l.type === 'service'
+    const renderPhotoGrid = async (photos: IncidentLog[], leftIndent = 0) => {
+      const unique = photos.filter((p, idx, arr) => arr.findIndex(x => x.id === p.id) === idx);
+      const cellWidth = 82;
+      const cellHeight = 58;
+      const gap = 8;
+      let col = 0;
+
+      for (const photo of unique) {
+        const photoUrl = getFetchableImageUrl(photo);
+        if (!photoUrl) continue;
+        const imgData = await loadImageAsBase64(photoUrl);
+        if (!imgData) continue;
+
+        const x = margin + leftIndent + (col === 0 ? 0 : cellWidth + gap);
+        checkPageBreak(cellHeight + 6);
+        try {
+          pdf.addImage(imgData, getPdfImageFormat(imgData), x, yPos, cellWidth, cellHeight);
+        } catch {
+          pdf.setFontSize(9);
+          pdf.setTextColor(150, 150, 150);
+          pdf.text('[Image could not be embedded]', x, yPos + 6);
+        }
+
+        if (col === 0) {
+          col = 1;
+        } else {
+          col = 0;
+          yPos += cellHeight + 4;
+        }
+      }
+
+      if (col === 1) {
+        yPos += cellHeight + 4;
+      }
+    };
+
+    const evidenceLogs = logs.filter(l =>
+      l.type === 'call' || l.type === 'text' || l.type === 'email' || l.type === 'service' || l.type === 'note'
     ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    if (chronologicalLogs.length > 0) {
+    const incidentPhotos = logs.filter(p => {
+      if (p.type !== 'photo') return false;
+      const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
+      return meta?.category === 'incident_photo' || (!meta?.parentLogId && !meta?.category);
+    }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    if (evidenceLogs.length > 0 || incidentPhotos.length > 0) {
       checkPageBreak(15);
       pdf.setFontSize(14);
       pdf.setFont('helvetica', 'bold');
@@ -343,13 +385,13 @@ export async function exportToPDF({
       yPos += 10;
       pdf.setTextColor(0, 0, 0);
 
-      for (const log of chronologicalLogs) {
+      for (const log of evidenceLogs) {
         checkPageBreak(30);
 
         const typeLabel = log.type === 'call' ? '[CALL]' :
                          log.type === 'text' ? '[TEXT]' :
                          log.type === 'email' ? '[EMAIL]' :
-                         log.type === 'service' ? '[SERVICE]' : '[PHOTO]';
+                         log.type === 'service' ? '[SERVICE]' : '[NOTE]';
 
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
@@ -368,7 +410,7 @@ export async function exportToPDF({
         pdf.text(format(new Date(log.createdAt), 'MMMM d, yyyy \'at\' h:mm a'), margin, yPos);
         yPos += 5;
 
-        if (log.content && log.type !== 'photo') {
+        if (log.content) {
           pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(10);
           pdf.setTextColor(0, 0, 0);
@@ -377,116 +419,43 @@ export async function exportToPDF({
           yPos += contentLines.length * 4 + 3;
         }
 
-        if (log.type === 'photo') {
-          const imageUrl = getFetchableImageUrl(log);
-          if (!imageUrl) {
-            yPos += 2;
-          } else {
-            checkPageBreak(60);
-            const imgData = await loadImageAsBase64(imageUrl);
-            if (imgData) {
-              try {
-                const imgWidth = 60;
-                const imgHeight = 45;
-                pdf.addImage(imgData, getPdfImageFormat(imgData), margin, yPos, imgWidth, imgHeight);
-                yPos += imgHeight + 5;
-              } catch {
-                pdf.setFontSize(9);
-                pdf.setTextColor(150, 150, 150);
-                pdf.text('[Image could not be embedded]', margin, yPos);
-                yPos += 5;
-              }
-            }
-          }
+        const logCategory = `${log.type}_photo`;
+        const attachedPhotos = logs.filter(p => {
+          if (p.type !== 'photo') return false;
+          const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
+          const parentMatch = meta?.parentLogId === log.id;
+          const categoryMatch = meta?.category === logCategory;
+          return parentMatch || categoryMatch;
+        });
+
+        if (attachedPhotos.length > 0) {
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'italic');
+          pdf.setTextColor(100, 116, 139);
+          pdf.text('Attached Photo(s):', margin, yPos);
+          yPos += 4;
+          await renderPhotoGrid(attachedPhotos, 0);
         }
 
-        if (log.type !== 'photo') {
-          const logCategory = `${log.type}_photo`;
-          const associatedPhotos = logs.filter(p => {
-            if (p.type !== 'photo') return false;
-            const meta = p.metadata && typeof p.metadata === 'object' ? (p.metadata as any) : null;
-            const parentMatch = meta?.parentLogId === log.id;
-            const categoryAndTimeMatch =
-              meta?.category === logCategory &&
-              Math.abs(new Date(p.createdAt).getTime() - new Date(log.createdAt).getTime()) <= 10 * 60 * 1000;
-            return parentMatch || categoryAndTimeMatch;
-          });
-          if (associatedPhotos.length > 0) {
-            pdf.setFontSize(9);
-            pdf.setFont('helvetica', 'italic');
-            pdf.setTextColor(100, 116, 139);
-            pdf.text('Attached Photos:', margin, yPos);
-            yPos += 4;
-
-            for (const photo of associatedPhotos) {
-              checkPageBreak(55);
-              const photoUrl = getFetchableImageUrl(photo);
-              if (photoUrl) {
-                const imgData = await loadImageAsBase64(photoUrl);
-                if (imgData) {
-                  try {
-                    const imgWidth = 50;
-                    const imgHeight = 37.5;
-                    pdf.addImage(imgData, getPdfImageFormat(imgData), margin + 5, yPos, imgWidth, imgHeight);
-                    yPos += imgHeight + 3;
-                  } catch {
-                    pdf.text('[Image could not be embedded]', margin + 5, yPos);
-                    yPos += 5;
-                  }
-                }
-              }
-            }
-          }
-        }
-
-        yPos += 8;
-      }
-    }
-
-    const chatLogsInPdf = logs.filter(l => l.type === 'chat');
-    if (chatLogsInPdf.length > 0) {
-      checkPageBreak(20);
-      pdf.setDrawColor(200, 200, 200);
-      pdf.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 10;
-
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(30, 41, 59);
-      pdf.text('AI CONSULTATION HISTORY', margin, yPos);
-      yPos += 10;
-
-      for (const chat of chatLogsInPdf) {
-        checkPageBreak(25);
-        const isAI = chat.isAi;
-
-        if (isAI) {
-          pdf.setFillColor(59, 130, 246);
-          pdf.roundedRect(margin, yPos - 4, 30, 6, 1, 1, 'F');
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFontSize(8);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('AI ASSISTANT', margin + 2, yPos);
-        } else {
-          pdf.setFillColor(100, 116, 139);
-          pdf.roundedRect(margin, yPos - 4, 15, 6, 1, 1, 'F');
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFontSize(8);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('YOU', margin + 2, yPos);
-        }
-
-        pdf.setTextColor(150, 150, 150);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(7);
-        pdf.text(format(new Date(chat.createdAt), 'MMM d, h:mm a'), margin + (isAI ? 35 : 20), yPos);
         yPos += 6;
+      }
 
-        pdf.setTextColor(0, 0, 0);
-        if (chat.content) {
-          renderMarkdown(chat.content);
-        }
-        yPos += 8;
+      if (incidentPhotos.length > 0) {
+        checkPageBreak(24);
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(59, 130, 246);
+        pdf.text('[INCIDENT]', margin, yPos);
+        yPos += 5;
+
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'italic');
+        pdf.setTextColor(100, 116, 139);
+        pdf.text('Attached Photo(s):', margin, yPos);
+        yPos += 4;
+
+        await renderPhotoGrid(incidentPhotos, 0);
+        yPos += 4;
       }
     }
 
