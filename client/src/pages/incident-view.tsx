@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download, FolderUp, AlertTriangle, Info, Minus, Wrench, Menu, Home, LayoutDashboard, LogOut, LogIn, Settings } from "lucide-react";
+import { Bot, User, Send, Phone, FileText, Image as ImageIcon, Trash2, Calendar, Clock, Pencil, MessageSquare, Mail, Paperclip, X, FolderOpen, RotateCcw, ChevronDown, ChevronRight, Folder, Copy, Check, Download, FolderUp, AlertTriangle, Info, Minus, Wrench, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -37,7 +37,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { getMetaCategory, getAttachedPhotos, getAttachedDocuments } from "@/lib/incident";
 import { buildFileGroups } from "@/lib/incident/buildFileGroups";
 import { buildTimelineItems } from "@/lib/incident/buildTimelineItems";
@@ -122,7 +121,6 @@ export default function IncidentView() {
   // Mobile drawer state
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [drawerOpenedByTour, setDrawerOpenedByTour] = useState(false);
-  const [globalMenuOpen, setGlobalMenuOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchCurrentX = useRef<number | null>(null);
   
@@ -1134,47 +1132,19 @@ export default function IncidentView() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Floating mobile app hamburger */}
-      <div className="fixed top-3 right-3 z-30 md:hidden">
+      {/* Fixed back button */}
+      <div className="fixed top-3 left-3 z-30 md:hidden">
         <Button
           variant="ghost"
           size="icon"
           className="bg-white/95 border border-slate-200 shadow-md backdrop-blur-sm"
-          onClick={() => setGlobalMenuOpen(true)}
-          aria-label="Open app menu"
-          data-testid="button-mobile-app-menu"
+          onClick={() => navigate('/dashboard')}
+          aria-label="Go back"
+          data-testid="button-back"
         >
-          <Menu className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" />
         </Button>
       </div>
-
-      <Sheet open={globalMenuOpen} onOpenChange={setGlobalMenuOpen}>
-        <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-          <SheetTitle className="text-left font-bold text-slate-900 mt-4 mb-2">Menu</SheetTitle>
-          <SheetDescription className="text-left mb-6 text-slate-500">
-            Navigate our services and resources.
-          </SheetDescription>
-          <nav className="flex flex-col gap-2">
-            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/'); }}><Home className="w-5 h-5" />Home</button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/about'); }}><Info className="w-5 h-5" />About Us</button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/resources'); }}><FileText className="w-5 h-5" />Resources</button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/forum'); }}><MessageSquare className="w-5 h-5" />Community</button>
-            <div className="h-px bg-slate-100 my-2" />
-            {user ? (
-              <>
-                <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/dashboard'); }}><LayoutDashboard className="w-5 h-5" />Dashboard</button>
-                <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/profile'); }}><User className="w-5 h-5" />Account</button>
-                {user.isAdmin && (
-                  <button className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/admin'); }}><Settings className="w-5 h-5" />Admin</button>
-                )}
-                <button className="flex w-full items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-red-50 hover:text-red-600 text-left" onClick={() => { logoutMutation.mutate(); setGlobalMenuOpen(false); }}><LogOut className="w-5 h-5" />Logout</button>
-              </>
-            ) : (
-              <button className="flex w-full items-center gap-3 px-4 py-3 rounded-md transition-colors bg-slate-900 text-white font-semibold hover:bg-slate-800 text-left" onClick={() => { setGlobalMenuOpen(false); navigate('/auth'); }}><LogIn className="w-5 h-5" />Login / Register</button>
-            )}
-          </nav>
-        </SheetContent>
-      </Sheet>
       {/* Mobile drawer overlay */}
       {mobileDrawerOpen && (
         <div 
@@ -2187,7 +2157,7 @@ export default function IncidentView() {
       {/* Chat Area */}
       <div className="flex-1 min-w-0 w-full max-w-full overflow-x-hidden flex flex-col">
         <ScrollArea ref={scrollRef} className="chat-scroll-area relative w-full max-w-full overflow-hidden flex-1 p-4 bg-slate-50 pb-[0px]">
-          <div className="w-full min-w-0 max-w-3xl mx-auto space-y-6 pb-28 md:pb-6 overflow-x-hidden">
+          <div className="w-full min-w-0 max-w-5xl mx-auto space-y-6 pb-28 md:pb-6 overflow-x-hidden">
             {chatLogs.length === 0 && (
               <div className="flex items-center justify-center h-full min-h-[280px] bg-gradient-to-b from-slate-50 to-slate-100/50 overflow-hidden mt-16 md:mt-6 mb-6" data-testid="chat-empty-state">
                 <div className="flex flex-col items-center select-none w-full max-w-[calc(100vw-2rem)] px-2 overflow-hidden" data-testid="ai-assistant-placeholder">
