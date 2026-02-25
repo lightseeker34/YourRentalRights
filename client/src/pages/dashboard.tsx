@@ -552,6 +552,16 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                             h1: ({children}) => <span className="font-bold">{children}</span>,
                             h2: ({children}) => <span className="font-bold">{children}</span>,
                             h3: ({children}) => <span className="font-bold">{children}</span>,
+                            table: ({children}) => (
+                              <div className="w-full max-w-full overflow-x-auto my-2 border rounded bg-white">
+                                <table className="w-full border-collapse text-xs text-left">{children}</table>
+                              </div>
+                            ),
+                            thead: ({children}) => <thead className="bg-slate-50 border-b border-slate-200">{children}</thead>,
+                            tbody: ({children}) => <tbody className="divide-y divide-slate-100">{children}</tbody>,
+                            tr: ({children}) => <tr className="hover:bg-slate-50/50 transition-colors">{children}</tr>,
+                            th: ({children}) => <th className="px-2 py-1 font-semibold text-slate-700 whitespace-nowrap">{children}</th>,
+                            td: ({children}) => <td className="px-2 py-1 text-slate-600 whitespace-pre-wrap min-w-[100px]">{children}</td>,
                           }}
                         >
                           {firstChat.content}
@@ -598,6 +608,16 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                                   h1: ({children}) => <span className="font-bold">{children}</span>,
                                   h2: ({children}) => <span className="font-bold">{children}</span>,
                                   h3: ({children}) => <span className="font-semibold">{children}</span>,
+                                  table: ({children}) => (
+                                    <div className="w-full max-w-full overflow-x-auto my-2 border rounded bg-white">
+                                      <table className="w-full border-collapse text-xs text-left">{children}</table>
+                                    </div>
+                                  ),
+                                  thead: ({children}) => <thead className="bg-slate-50 border-b border-slate-200">{children}</thead>,
+                                  tbody: ({children}) => <tbody className="divide-y divide-slate-100">{children}</tbody>,
+                                  tr: ({children}) => <tr className="hover:bg-slate-50/50 transition-colors">{children}</tr>,
+                                  th: ({children}) => <th className="px-2 py-1 font-semibold text-slate-700 whitespace-nowrap">{children}</th>,
+                                  td: ({children}) => <td className="px-2 py-1 text-slate-600 whitespace-pre-wrap min-w-[100px]">{children}</td>,
                                 }}
                               >
                                 {log.content}
@@ -639,6 +659,16 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                           h1: ({children}) => <span className="font-bold">{children}</span>,
                           h2: ({children}) => <span className="font-bold">{children}</span>,
                           h3: ({children}) => <span className="font-semibold">{children}</span>,
+                          table: ({children}) => (
+                            <div className="w-full max-w-full overflow-x-auto my-2 border rounded bg-white">
+                              <table className="w-full border-collapse text-xs text-left">{children}</table>
+                            </div>
+                          ),
+                          thead: ({children}) => <thead className="bg-slate-50 border-b border-slate-200">{children}</thead>,
+                          tbody: ({children}) => <tbody className="divide-y divide-slate-100">{children}</tbody>,
+                          tr: ({children}) => <tr className="hover:bg-slate-50/50 transition-colors">{children}</tr>,
+                          th: ({children}) => <th className="px-2 py-1 font-semibold text-slate-700 whitespace-nowrap">{children}</th>,
+                          td: ({children}) => <td className="px-2 py-1 text-slate-600 whitespace-pre-wrap min-w-[100px]">{children}</td>,
                         }}
                       >
                         {log.content}
@@ -1198,6 +1228,14 @@ export default function Dashboard() {
         setCurrentIndex(0);
       }
       scrollToIndex(0);
+      
+      // Try to focus the first card for accessibility/keyboard users
+      setTimeout(() => {
+        const firstCard = document.querySelector('[data-testid^="incident-card-"] a');
+        if (firstCard instanceof HTMLElement) {
+          firstCard.focus();
+        }
+      }, 500); // Wait for optimistic render
       
       if (uploadFailures > 0) {
         toast({ title: "Upload Issue", description: `${uploadFailures} photo(s) failed to upload, but incident was created.`, variant: "destructive" });
