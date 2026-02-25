@@ -1178,6 +1178,9 @@ export default function Dashboard() {
       setDesc("");
       setIncidentPhotos([]);
       
+      // Optimistic toast
+      toast({ title: "Incident Created", description: "New timeline started." });
+
       return { previousIncidents };
     },
     onError: (err, variables, context) => {
@@ -1197,9 +1200,7 @@ export default function Dashboard() {
       scrollToIndex(0);
       
       if (uploadFailures > 0) {
-        toast({ title: "Log Created", description: `Timeline started, but ${uploadFailures} photo(s) failed to upload.`, variant: "destructive" });
-      } else {
-        toast({ title: "Log Created", description: "New timeline started." });
+        toast({ title: "Upload Issue", description: `${uploadFailures} photo(s) failed to upload, but incident was created.`, variant: "destructive" });
       }
     },
   });
