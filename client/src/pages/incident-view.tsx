@@ -2490,7 +2490,7 @@ export default function IncidentView() {
                     <>
                               <div className={`p-4 rounded-xl transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full [overflow-wrap:anywhere] ${
                                 log.isAi 
-                                  ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed" 
+                                  ? "bg-transparent text-slate-700 text-sm leading-relaxed" 
                                   : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words max-w-full"
                               }`}>
                         {log.isAi ? (
@@ -2533,8 +2533,8 @@ export default function IncidentView() {
                                 strong: ({children}) => <strong className="font-bold">{children}</strong>,
                                 a: ({children, href}) => <a href={href} className="text-blue-700 underline break-all" target="_blank" rel="noreferrer">{children}</a>,
                                 table: ({children}) => (
-                                  <div className="w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain my-3 -mx-2 px-2 pb-1">
-                                    <table className="table-auto min-w-max border-collapse border border-slate-300 text-sm">{children}</table>
+                                  <div className="overflow-x-auto my-3 rounded border border-slate-200 pb-1">
+                                    <table className="table-auto min-w-max border-collapse text-sm">{children}</table>
                                   </div>
                                 ),
                                 thead: ({children}) => <thead className="bg-slate-100">{children}</thead>,
