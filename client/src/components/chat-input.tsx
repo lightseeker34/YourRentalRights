@@ -32,9 +32,10 @@ export const ChatInput = memo(forwardRef<ChatInputHandle, ChatInputProps>(functi
   }));
 
   useEffect(() => {
-    if (autoFocusWhenEmpty && textareaRef.current) {
-      textareaRef.current.focus();
-    }
+    // Disabled auto-focus to prevent mobile keyboard from popping up
+    // if (autoFocusWhenEmpty && textareaRef.current) {
+    //   textareaRef.current.focus();
+    // }
   }, [autoFocusWhenEmpty]);
 
   const [chatAttachments, setChatAttachments] = useState<string[]>([]);

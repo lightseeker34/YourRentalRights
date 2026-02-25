@@ -258,9 +258,12 @@ export default function IncidentView() {
     if (pendingMsg) {
       chatInputRef.current?.setInput(pendingMsg);
       localStorage.removeItem('pending_chat_msg');
-      setTimeout(() => {
-        chatInputRef.current?.focus();
-      }, 500);
+      // Only focus on desktop to avoid keyboard popup on mobile
+      if (window.innerWidth >= 768) {
+        setTimeout(() => {
+          chatInputRef.current?.focus();
+        }, 500);
+      }
     }
   }, []);
 
