@@ -21,7 +21,7 @@ export function Layout({ children, hideTicker = false, hideFooter = false }: Lay
   const isIncidentView = location.startsWith('/dashboard/incident/');
   const shouldHideTicker = hideTicker || isDashboard;
   const shouldHideFooter = hideFooter || isDashboard;
-  const shouldHideHeader = isIncidentView;
+  const shouldHideHeader = isIncidentView || isDashboard;
 
   const navItems = [
     { href: "/", label: "Home", icon: Home },

@@ -4,7 +4,7 @@ import { Incident, InsertIncident, IncidentLog } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Plus, FolderOpen, Clock, CheckCircle, Phone, MessageSquare, Mail, FileText, Image as ImageIcon, Pencil, Trash2, ChevronRight, ChevronDown, Paperclip, X, FolderUp } from "lucide-react";
+import { Plus, FolderOpen, Clock, CheckCircle, Phone, MessageSquare, Mail, FileText, Image as ImageIcon, Pencil, Trash2, ChevronRight, ChevronDown, Paperclip, X, FolderUp, Menu, Home, Info, LogOut, LayoutDashboard } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { GuidedTour } from "@/components/guided-tour";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Skeleton card that mimics the incident card layout
@@ -1044,9 +1045,10 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [incidentPhotos, setIncidentPhotos] = useState<File[]>([]);
@@ -1249,130 +1251,195 @@ export default function Dashboard() {
     createMutation.mutate({ data: { title, description: desc }, photos: incidentPhotos });
   };
 
+  const newIncidentDialogContent = (
+    <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[45px] pb-[45px]">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Input 
+            placeholder="Log Title" 
+            value={title} 
+            onChange={e => setTitle(e.target.value)} 
+            required 
+            className="mt-[6px] mb-[6px] placeholder:text-slate-400"
+            data-testid="input-log-title"
+          />
+        </div>
+        <div className="space-y-2">
+          <Textarea 
+            placeholder="Briefly describe what happened..." 
+            value={desc} 
+            onChange={e => setDesc(e.target.value)} 
+            required 
+            className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
+            data-testid="input-log-description"
+          />
+        </div>
+        <div className="space-y-2">
+          {incidentPhotos.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {incidentPhotos.map((file, idx) => (
+                <div key={idx} className="relative group">
+                  {file.type.startsWith('image/') ? (
+                    <img src={URL.createObjectURL(file)} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" data-testid={`img-incident-photo-${idx}`} />
+                  ) : (
+                    <div className="w-12 h-12 flex items-center justify-center rounded border border-slate-200 bg-slate-50">
+                      <Paperclip className="w-4 h-4 text-slate-500" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    data-testid={`btn-remove-incident-photo-${idx}`}
+                    onClick={() => setIncidentPhotos(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <input 
+              type="file" 
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              multiple
+              data-testid="input-incident-photos"
+              onChange={(e) => {
+                setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
+                e.target.value = '';
+              }}
+              className="hidden"
+              ref={(el) => { if (el) (el as any)._newLogFileInput = true; }}
+              id="new-log-file-input"
+            />
+            <input 
+              type="file" 
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              multiple
+              onChange={(e) => {
+                setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
+                e.target.value = '';
+              }}
+              className="hidden"
+              id="new-log-folder-input"
+              {...({ webkitdirectory: "", directory: "" } as any)}
+            />
+            <Button 
+              variant="outline" 
+              size="sm"
+              type="button"
+              onClick={() => document.getElementById('new-log-file-input')?.click()}
+              className="w-full justify-start"
+              data-testid="button-new-log-upload-file"
+            >
+              <Paperclip className="w-4 h-4 mr-2" />
+              Upload File
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              type="button"
+              onClick={() => document.getElementById('new-log-folder-input')?.click()}
+              className="w-full justify-start"
+              data-testid="button-new-log-upload-folder"
+            >
+              <FolderUp className="w-4 h-4 mr-2" />
+              Upload Folder
+            </Button>
+          </div>
+        </div>
+        <Button 
+          onClick={() => handleSubmit()}
+          className="w-full" 
+          disabled={createMutation.isPending}
+          data-testid="btn-create-log"
+        >
+          Create Log
+        </Button>
+      </div>
+    </DialogContent>
+  );
+
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl min-h-[calc(100vh-64px)] md:min-h-0 flex flex-col">
-      {/* Header with Add New Log button on right */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8 px-2 sm:px-[10px]">
+      {/* Mobile: Welcome row with hamburger menu (hidden on sm+) */}
+      <div className="flex sm:hidden items-center justify-between px-2 pb-3">
+        <div>
+          <h1 className="font-bold text-slate-900 text-[25px]">Welcome, {user?.fullName || user?.username}</h1>
+          <p className="text-slate-600 text-[15px]">Track and manage maintenance and interactions</p>
+        </div>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-slate-700" aria-label="Open navigation menu">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[280px]">
+            <SheetTitle className="text-left font-bold text-slate-900 mt-4 mb-2">Menu</SheetTitle>
+            <SheetDescription className="text-left mb-4 text-slate-500">Navigate our services and resources.</SheetDescription>
+            <nav className="flex flex-col gap-1">
+              {[
+                { href: "/", label: "Home", icon: Home },
+                { href: "/about", label: "About Us", icon: Info },
+                { href: "/resources", label: "Resources", icon: FileText },
+                { href: "/forum", label: "Community", icon: MessageSquare },
+              ].map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <item.icon className="w-5 h-5" />
+                  {item.label}
+                </a>
+              ))}
+              <div className="h-px bg-slate-100 my-2" />
+              <a
+                href="/dashboard"
+                className="flex items-center gap-3 px-4 py-3 rounded-md bg-slate-100 text-slate-900 font-semibold transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <LayoutDashboard className="w-5 h-5" />
+                Dashboard
+              </a>
+              <button
+                className="flex w-full items-center gap-3 px-4 py-3 rounded-md transition-colors cursor-pointer text-slate-600 hover:bg-red-50 hover:text-red-600 text-left"
+                onClick={() => { logoutMutation.mutate(); setMobileMenuOpen(false); }}
+              >
+                <LogOut className="w-5 h-5" />
+                Logout
+              </button>
+            </nav>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Mobile: Add New Incident button (hidden on sm+) */}
+      <div className="flex sm:hidden px-2 pb-3">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-slate-900 hover:bg-slate-800 font-normal w-full" data-testid="add-new-log-button">
+              {incidents && incidents.length > 0 ? 'Add New Incident' : 'Create First Incident'}
+            </Button>
+          </DialogTrigger>
+          {newIncidentDialogContent}
+        </Dialog>
+      </div>
+
+      {/* Desktop: Original header row (hidden on mobile) */}
+      <div className="hidden sm:flex sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8 px-2 sm:px-[10px]">
         <div>
           <h1 className="sm:text-3xl font-bold text-slate-900 text-[25px]">Welcome, {user?.fullName || user?.username}</h1>
           <p className="sm:text-base text-slate-600 text-[15px]">Track and manage maintenance and interactions</p>
         </div>
-        
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button 
-              className="bg-slate-900 hover:bg-slate-800 text-center font-normal px-6 w-full sm:w-auto" 
-              data-testid="add-new-log-button"
-            >
+            <Button className="bg-slate-900 hover:bg-slate-800 text-center font-normal px-6 w-full sm:w-auto" data-testid="add-new-log-button">
               {incidents && incidents.length > 0 ? 'Add New Incident' : 'Create First Incident'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[45px] pb-[45px]">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Input 
-                  placeholder="Log Title" 
-                  value={title} 
-                  onChange={e => setTitle(e.target.value)} 
-                  required 
-                  className="mt-[6px] mb-[6px] placeholder:text-slate-400"
-                  data-testid="input-log-title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Textarea 
-                  placeholder="Briefly describe what happened..." 
-                  value={desc} 
-                  onChange={e => setDesc(e.target.value)} 
-                  required 
-                  className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
-                  data-testid="input-log-description"
-                />
-              </div>
-              <div className="space-y-2">
-                {incidentPhotos.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {incidentPhotos.map((file, idx) => (
-                      <div key={idx} className="relative group">
-                        {file.type.startsWith('image/') ? (
-                          <img src={URL.createObjectURL(file)} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" data-testid={`img-incident-photo-${idx}`} />
-                        ) : (
-                          <div className="w-12 h-12 flex items-center justify-center rounded border border-slate-200 bg-slate-50">
-                            <Paperclip className="w-4 h-4 text-slate-500" />
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          data-testid={`btn-remove-incident-photo-${idx}`}
-                          onClick={() => setIncidentPhotos(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex flex-col gap-2">
-                  <input 
-                    type="file" 
-                    accept="image/*,.pdf,.doc,.docx,.txt"
-                    multiple
-                    data-testid="input-incident-photos"
-                    onChange={(e) => {
-                      setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                    ref={(el) => { if (el) (el as any)._newLogFileInput = true; }}
-                    id="new-log-file-input"
-                  />
-                  <input 
-                    type="file" 
-                    accept="image/*,.pdf,.doc,.docx,.txt"
-                    multiple
-                    onChange={(e) => {
-                      setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                    id="new-log-folder-input"
-                    {...({ webkitdirectory: "", directory: "" } as any)}
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    type="button"
-                    onClick={() => document.getElementById('new-log-file-input')?.click()}
-                    className="w-full justify-start"
-                    data-testid="button-new-log-upload-file"
-                  >
-                    <Paperclip className="w-4 h-4 mr-2" />
-                    Upload File
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    type="button"
-                    onClick={() => document.getElementById('new-log-folder-input')?.click()}
-                    className="w-full justify-start"
-                    data-testid="button-new-log-upload-folder"
-                  >
-                    <FolderUp className="w-4 h-4 mr-2" />
-                    Upload Folder
-                  </Button>
-                </div>
-              </div>
-              <Button 
-                onClick={() => handleSubmit()}
-                className="w-full" 
-                disabled={createMutation.isPending}
-                data-testid="btn-create-log"
-              >
-                Create Log
-              </Button>
-            </div>
-          </DialogContent>
+          {newIncidentDialogContent}
         </Dialog>
       </div>
       {isLoading ? (
@@ -1399,7 +1466,7 @@ export default function Dashboard() {
       ) : (
         <>
           {/* Mobile: iOS-style horizontal carousel */}
-          <div className="flex-1 flex flex-col sm:hidden">
+          <div className="flex-1 flex flex-col sm:hidden pb-16">
             <div 
               ref={carouselRef}
               className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide flex-1"
@@ -1415,16 +1482,16 @@ export default function Dashboard() {
               ))}
             </div>
             
-            {/* iOS-style dot indicators */}
+            {/* Fixed Page Indicator at Bottom - mirrors MobileDashboard.js pattern */}
             {sortedIncidents && sortedIncidents.length > 1 && (
-              <div className="flex justify-center gap-2 py-4">
+              <div role="navigation" aria-label="Page indicator" className="fixed bottom-0 left-0 right-0 flex justify-center gap-2 py-3 bg-white/90 backdrop-blur-sm border-t border-slate-100 sm:hidden z-10">
                 {sortedIncidents.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => scrollToIndex(index)}
                     className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                      index === currentIndex 
-                        ? 'bg-slate-900 w-4' 
+                      index === currentIndex
+                        ? 'bg-slate-900 w-4'
                         : 'bg-slate-300 hover:bg-slate-400'
                     }`}
                     aria-label={`Go to incident ${index + 1}`}
