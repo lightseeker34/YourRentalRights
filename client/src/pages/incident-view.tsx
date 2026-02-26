@@ -1133,16 +1133,16 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Fixed back button */}
-      <div className="fixed top-3 left-2 z-30 md:hidden">
+      <div className="fixed top-3 left-3 z-30 md:hidden">
         <Button
           variant="ghost"
           size="icon"
-          className="text-slate-900"
+          className="bg-white/90 border border-slate-200 shadow-md backdrop-blur-sm rounded-full w-10 h-10 hover:bg-white"
           onClick={() => navigate('/dashboard')}
           aria-label="Go back"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-7 h-7 stroke-[4]" />
+          <ArrowLeft className="w-5 h-5 stroke-[2.5] text-slate-700" />
         </Button>
       </div>
       {/* Mobile drawer overlay */}
@@ -2175,7 +2175,7 @@ export default function IncidentView() {
             )}
             {chatLogs.map((log) => (
               <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-2 md:gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%] pr-0 md:pr-1' : 'max-w-[88%] md:max-w-[85%] ml-auto items-end mr-[15px] md:mr-0'}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%] pr-0 md:pr-1' : 'max-w-[88%] md:max-w-[85%] ml-auto items-end mr-0 md:mr-0'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
