@@ -58,18 +58,17 @@ export const MarkdownRenderer = memo(({ content, isAi = false }: MarkdownRendere
           a: ({children, href}) => <a href={href} className="text-blue-700 underline break-all" target="_blank" rel="noreferrer">{children}</a>,
           // Fixed table rendering:
           // 1. Wrapper div has `w-full overflow-x-auto` to allow scrolling
-          // 2. Table has `min-w-full` to ensure it fills the wrapper but can grow
-          // 3. Cells have `min-w-[100px]` to force horizontal scroll on small screens instead of squishing
+          // 2. Table has `w-auto` to fit content tightly instead of stretching
           table: ({children}) => (
-            <div className="w-[calc(100vw-40px)] md:w-full overflow-x-auto my-1 md:my-4 border rounded-lg shadow-sm bg-white block">
-              <table className="min-w-full border-collapse text-sm text-left table-auto w-full">{children}</table>
+            <div className="w-full overflow-x-auto my-4 border rounded-lg shadow-sm bg-white block">
+              <table className="table-auto w-auto border-collapse text-sm text-left">{children}</table>
             </div>
           ),
           thead: ({children}) => <thead className="bg-slate-50 border-b border-slate-200">{children}</thead>,
           tbody: ({children}) => <tbody className="divide-y divide-slate-100">{children}</tbody>,
           tr: ({children}) => <tr className="hover:bg-slate-50/50 transition-colors border-b border-slate-200 last:border-0">{children}</tr>,
-          th: ({children}) => <th className="px-1 py-3 font-semibold text-slate-700 whitespace-nowrap min-w-[100px] border-r border-slate-200 last:border-r-0 text-center">{children}</th>,
-          td: ({children}) => <td className="px-1 py-3 text-slate-600 whitespace-normal min-w-[140px] max-w-[400px] border-r border-slate-200 last:border-r-0">{children}</td>,
+          th: ({children}) => <th className="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap border-r border-slate-200 last:border-r-0 text-center">{children}</th>,
+          td: ({children}) => <td className="px-4 py-3 text-slate-600 whitespace-nowrap border-r border-slate-200 last:border-r-0">{children}</td>,
         }}
       >
         {content}
