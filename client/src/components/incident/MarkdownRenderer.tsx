@@ -69,7 +69,7 @@ export const MarkdownRenderer = memo(({ content, isAi = false }: MarkdownRendere
           tbody: ({children}) => <tbody className="divide-y divide-slate-100">{children}</tbody>,
           tr: ({children}) => <tr className="hover:bg-slate-50/50 transition-colors">{children}</tr>,
           th: ({children}) => <th className="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap min-w-[100px]">{children}</th>,
-          td: ({children}) => <td className="px-4 py-3 text-slate-600 whitespace-pre-wrap min-w-[120px] max-w-[400px]">{children}</td>,
+          td: ({children}) => <td className="px-4 py-3 text-slate-600 whitespace-nowrap min-w-[120px] max-w-[400px]">{children}</td>,
         }}
       >
         {content}

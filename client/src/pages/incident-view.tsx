@@ -1142,7 +1142,7 @@ export default function IncidentView() {
           aria-label="Go back"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-5 h-5 stroke-[3]" />
+          <ArrowLeft className="w-7 h-7 stroke-[4]" />
         </Button>
       </div>
       {/* Mobile drawer overlay */}
@@ -2505,7 +2505,7 @@ export default function IncidentView() {
                           </>
                         )}
                       </div>
-                      <div className={`flex items-center gap-2 pt-[0px] pb-[0px] mt-[0px] mb-[0px] min-w-0 flex-wrap ${log.isAi ? "justify-start ml-[20px]" : "justify-end"}`}>
+                      <div className={`flex items-center gap-2 pt-[0px] pb-[0px] mt-[0px] mb-[0px] min-w-0 flex-wrap justify-end`}>
                         <span className="text-xs text-slate-400 ml-[5px] mr-[5px]">
                           {formatDateTime(log.createdAt)}
                         </span>
