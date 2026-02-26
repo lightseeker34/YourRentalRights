@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { format } from "date-fns";
@@ -29,7 +29,6 @@ import { isAnalysisPdf } from "@/lib/incident";
 import { compactMarkdownComponents } from "@/lib/markdown/incidentMarkdown";
 import { type TimelineItem } from "@/lib/incident/buildTimelineItems";
 import { type FileGroup } from "@/lib/incident/buildFileGroups";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const formatDateTime = (date: Date | string) =>
   format(new Date(date), "MMM d, yyyy  h:mm a");
@@ -114,44 +113,13 @@ export function SidebarContent({
 }: SidebarContentProps) {
   const isMobile = variant === 'mobile';
 
-  const [timelineOpen, setTimelineOpen] = useState(true);
-  const [showAllPhotos, setShowAllPhotos] = useState(false);
-
   const incidentPhotos = logs?.filter(l => l.type === 'photo' && (l.metadata as any)?.category === 'incident_photo') || [];
-
-  useEffect(() => {
-    if (incidentPhotos.length > 8) {
-      const handle = requestAnimationFrame(() => setShowAllPhotos(true));
-      return () => cancelAnimationFrame(handle);
-    } else {
-      setShowAllPhotos(true);
-    }
-  }, [incidentPhotos.length]);
-
-  const attachmentsByParentId = useMemo(() => {
-    const map = new Map<number, { photos: IncidentLog[]; docs: IncidentLog[] }>();
-    logs?.forEach(l => {
-      const parentLogId = (l.metadata as any)?.parentLogId;
-      if (parentLogId != null) {
-        if (!map.has(parentLogId)) {
-          map.set(parentLogId, { photos: [], docs: [] });
-        }
-        const entry = map.get(parentLogId)!;
-        if (l.type === 'photo') entry.photos.push(l);
-        else if (l.type === 'document') entry.docs.push(l);
-      }
-    });
-    return map;
-  }, [logs]);
   const logDocCategories = ['call_document', 'text_document', 'email_document', 'service_document'];
   const incidentDocs = logs?.filter(l => {
     if (l.type !== 'document') return false;
     const cat = (l.metadata as any)?.category;
     return cat === 'incident_document' || !logDocCategories.includes(cat);
   }) || [];
-
-  const visiblePhotos = (incidentPhotos.length > 8 && !showAllPhotos) ? incidentPhotos.slice(0, 8) : incidentPhotos;
-  const hiddenPhotoCount = (incidentPhotos.length > 8 && !showAllPhotos) ? incidentPhotos.length - 8 : 0;
 
   return (
     <>
@@ -275,17 +243,11 @@ export function SidebarContent({
       </div>
 
       <div className="space-y-6 mt-6">
-        <Collapsible open={timelineOpen} onOpenChange={setTimelineOpen}>
-          <CollapsibleTrigger asChild>
-            <button type="button" aria-expanded={timelineOpen} aria-label={timelineOpen ? 'Collapse timeline' : 'Expand timeline'} className={`flex items-center justify-between w-full text-left ${isMobile ? 'pl-[20px] pr-[20px]' : ''}`}>
-              <h3 className={isMobile
-                ? "font-bold uppercase tracking-wider text-[16px] mt-[10px] mb-[10px] text-[#0f172a]"
-                : "text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider"
-              }>Timeline</h3>
-              <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${timelineOpen ? '' : '-rotate-90'}`} />
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+        <div>
+          <h3 className={isMobile
+            ? "font-bold uppercase tracking-wider text-left pl-[20px] pr-[20px] text-[16px] mt-[10px] mb-[10px] text-[#0f172a]"
+            : "text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider"
+          }>Timeline</h3>
           <div className="space-y-2">
             {/* Master Bubble */}
             <div className={isMobile
@@ -319,14 +281,14 @@ export function SidebarContent({
                 {incidentPhotos.length > 0 && (
                   isMobile ? (
                     <div className="ml-0 border-l-0 pl-0 pr-1 mt-0.5 flex w-full max-w-full flex-wrap gap-1 justify-start overflow-hidden">
-                      {visiblePhotos.map((photo) => (
+                      {incidentPhotos.map((photo) => (
                         <ThumbnailWithDelete key={photo.id} onDelete={() => onDeleteLog(photo.id)} onPreview={() => openPreview(photo)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                           <Card className="w-full h-full relative group overflow-hidden border-slate-200 rounded-md">
                             <img
                               src={photo.fileUrl!}
                               loading="lazy"
                               alt={photo.content}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105 rounded-md"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <ImageIcon className="w-3 h-3 text-white" />
@@ -334,11 +296,6 @@ export function SidebarContent({
                           </Card>
                         </ThumbnailWithDelete>
                       ))}
-                      {hiddenPhotoCount > 0 && (
-                        <button type="button" aria-label={`Show ${hiddenPhotoCount} more photos`} className="text-xs text-blue-500 self-center pl-1" onClick={() => setShowAllPhotos(true)}>
-                          +{hiddenPhotoCount} more
-                        </button>
-                      )}
                       {incidentDocs.map((doc) => (
                         <ThumbnailWithDelete key={doc.id} onDelete={() => onDeleteLog(doc.id)} onPreview={() => openPreview(doc)} className="w-10 h-10 overflow-hidden cursor-pointer rounded-md">
                           <Card className="w-full h-full relative group overflow-hidden border-slate-200 flex items-center justify-center bg-slate-50 hover:bg-slate-100 rounded-md">
@@ -348,8 +305,8 @@ export function SidebarContent({
                       ))}
                     </div>
                   ) : (
-                    <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-0.5 items-center">
-                      {visiblePhotos.map((photo) => (
+                    <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-1 flex flex-wrap gap-0.5">
+                      {incidentPhotos.map((photo) => (
                         <ThumbnailWithDelete
                           key={photo.id}
                           onDelete={() => onDeleteLog(photo.id)}
@@ -361,7 +318,7 @@ export function SidebarContent({
                               src={photo.fileUrl!}
                               loading="lazy"
                               alt={photo.content}
-                              className="w-full h-full object-cover transition-transform group-hover:scale-105 rounded-md"
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <ImageIcon className="w-3 h-3 text-white" />
@@ -369,11 +326,6 @@ export function SidebarContent({
                           </Card>
                         </ThumbnailWithDelete>
                       ))}
-                      {hiddenPhotoCount > 0 && (
-                        <button type="button" aria-label={`Show ${hiddenPhotoCount} more photos`} className="text-xs text-blue-500 pl-1" onClick={() => setShowAllPhotos(true)}>
-                          +{hiddenPhotoCount} more
-                        </button>
-                      )}
                     </div>
                   )
                 )}
@@ -386,7 +338,7 @@ export function SidebarContent({
                     const chatCount = item.chats.length;
 
                     return (
-                      <div key={item.id} className="timeline-item">
+                      <div key={item.id}>
                         {!isExpanded && (
                           <Card
                             className="p-2 cursor-pointer hover:bg-slate-50 bg-slate-50 border-slate-200"
@@ -458,11 +410,18 @@ export function SidebarContent({
                   else if (log.type === 'service') { icon = Wrench; color = "text-orange-500"; }
                   else if (log.type === 'note') { icon = FileText; color = "text-slate-500"; }
 
-                  const { photos: attachedPhotos = [], docs: attachedDocs = [] } = attachmentsByParentId.get(log.id) ?? {};
+                  const attachedPhotos = logs?.filter(l => {
+                    const parentLogId = (l.metadata as any)?.parentLogId;
+                    return l.type === 'photo' && parentLogId === log.id;
+                  }) || [];
+                  const attachedDocs = logs?.filter(l => {
+                    const parentLogId = (l.metadata as any)?.parentLogId;
+                    return l.type === 'document' && parentLogId === log.id;
+                  }) || [];
                   const hasAttachments = attachedPhotos.length > 0 || attachedDocs.length > 0;
 
                   return (
-                    <div key={log.id} className="timeline-item">
+                    <div key={log.id}>
                       <LogEntryCard
                         log={log}
                         icon={icon}
@@ -483,7 +442,7 @@ export function SidebarContent({
                                   src={photo.fileUrl!}
                                   loading="lazy"
                                   alt={photo.content}
-                                  className="w-full h-full object-cover transition-transform group-hover:scale-105 rounded-md"
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <ImageIcon className="w-3 h-3 text-white" />
@@ -513,8 +472,7 @@ export function SidebarContent({
               </div>
             )}
           </div>
-          </CollapsibleContent>
-        </Collapsible>
+        </div>
 
         {/* Files Section */}
         {fileGroups.length > 0 && (
