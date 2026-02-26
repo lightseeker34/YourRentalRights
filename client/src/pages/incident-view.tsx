@@ -2011,7 +2011,7 @@ export default function IncidentView() {
           <ImageWithFallback
             src={previewUrl || ''}
             alt={previewName}
-            className="block mx-auto h-auto max-w-full max-h-[88vh] object-contain"
+            className="block mx-auto h-auto max-w-full max-h-[85dvh] object-contain rounded-xl"
           />
         )}
       />

@@ -23,7 +23,7 @@ export function ImagePreviewModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         aria-describedby={undefined}
-        className={previewType === 'image' ? "w-[98vw] max-w-none h-[96vh] max-h-[96vh] rounded-xl mx-auto p-1 [&>button]:top-8 [&>button]:right-4" : "w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto [&>button]:top-8 [&>button]:right-4"}
+        className={previewType === 'image' ? "w-[98vw] max-w-none h-[96dvh] max-h-[96dvh] rounded-xl mx-auto p-1 pb-[env(safe-area-inset-bottom)] [&>button]:top-8 [&>button]:right-4" : "w-[90vw] max-w-3xl max-h-[90vh] rounded-xl mx-auto [&>button]:top-8 [&>button]:right-4"}
       >
         {previewType !== 'image' && (
           <DialogHeader>
@@ -32,7 +32,7 @@ export function ImagePreviewModal({
           </DialogHeader>
         )}
 
-        <div className={previewType === 'image' ? "flex items-center justify-center pt-16 px-1 pb-1 w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
+        <div className={previewType === 'image' ? "flex items-center justify-center pt-16 px-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] w-full h-full overflow-auto" : "flex items-center justify-center p-4 w-full max-h-[75vh] overflow-auto"}>
           {previewType === 'image' ? (
             <div className="flex items-center justify-center w-full h-full">
               {renderImage()}
