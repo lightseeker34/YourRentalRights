@@ -1137,12 +1137,12 @@ export default function IncidentView() {
         <Button
           variant="ghost"
           size="icon"
-          className="bg-white/95 border border-slate-200 shadow-md backdrop-blur-sm"
+          className="text-slate-900"
           onClick={() => navigate('/dashboard')}
           aria-label="Go back"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-7 h-7 stroke-[2.5]" />
         </Button>
       </div>
       {/* Mobile drawer overlay */}
@@ -2175,7 +2175,7 @@ export default function IncidentView() {
             )}
             {chatLogs.map((log) => (
               <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-2 md:gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%] pr-1' : 'max-w-[88%] md:max-w-[85%] ml-auto items-end'}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%] pr-0 md:pr-1' : 'max-w-[88%] md:max-w-[85%] ml-auto items-end mr-[15px] md:mr-0'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
@@ -2464,7 +2464,7 @@ export default function IncidentView() {
                   )}
                   {editLogId !== log.id && (
                     <>
-                      <div className={`p-4 rounded-xl transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full overflow-hidden ${
+                      <div className={`px-[10px] md:px-4 rounded-xl transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full overflow-hidden ${
                         log.isAi 
                           ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed" 
                           : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words max-w-full"
