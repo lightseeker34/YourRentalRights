@@ -1137,12 +1137,12 @@ export default function IncidentView() {
         <Button
           variant="ghost"
           size="icon"
-          className="bg-white/90 border border-slate-200 shadow-md backdrop-blur-sm rounded-full w-10 h-10 hover:bg-white"
+          className="bg-white/90 border border-slate-200 shadow-md backdrop-blur-sm rounded-xl w-10 h-10 hover:bg-white"
           onClick={() => navigate('/dashboard')}
           aria-label="Go back"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-5 h-5 stroke-[2.5] text-slate-700" />
+          <ArrowLeft className="w-6 h-6 stroke-[2.5] text-slate-700" />
         </Button>
       </div>
       {/* Mobile drawer overlay */}
@@ -2175,7 +2175,7 @@ export default function IncidentView() {
             )}
             {chatLogs.map((log) => (
               <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-2 md:gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
-                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%] pr-0 md:pr-1' : 'max-w-[88%] md:max-w-[85%] ml-auto items-end mr-0 md:mr-0'}`}>
+                <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%] pr-0 md:pr-1' : 'max-w-[calc(88%-15px)] md:max-w-[calc(85%-15px)] ml-auto items-end mr-0 md:mr-0'}`}>
                   {editLogId === log.id && (
                     <>
                       {/* Desktop inline edit */}
@@ -2505,7 +2505,7 @@ export default function IncidentView() {
                           </>
                         )}
                       </div>
-                      <div className={`flex items-center gap-2 pt-[0px] pb-[0px] mt-[0px] mb-[0px] min-w-0 flex-wrap justify-end`}>
+                      <div className={`flex items-center gap-2 pt-[0px] pb-[0px] mt-[0px] mb-[0px] min-w-0 flex-wrap ${log.isAi ? "justify-start pl-1" : "justify-end"}`}>
                         <span className="text-xs text-slate-400 ml-[5px] mr-[5px]">
                           {formatDateTime(log.createdAt)}
                         </span>
