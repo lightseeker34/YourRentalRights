@@ -2466,7 +2466,7 @@ export default function IncidentView() {
                     <>
                       <div className={`px-[10px] md:px-4 rounded-xl transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full overflow-hidden ${
                         log.isAi 
-                          ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed pl-[15px]" 
+                          ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed" 
                           : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words max-w-full"
                       }`}>
                         {log.isAi ? (
@@ -2505,7 +2505,7 @@ export default function IncidentView() {
                           </>
                         )}
                       </div>
-                      <div className={`flex items-center gap-2 pt-[0px] pb-[0px] mt-[0px] mb-[0px] min-w-0 flex-wrap ${log.isAi ? "justify-start ml-[35px]" : "justify-end"}`}>
+                      <div className={`flex items-center gap-2 pt-[0px] pb-[0px] mt-[0px] mb-[0px] min-w-0 flex-wrap ${log.isAi ? "justify-start ml-[10px] md:ml-4" : "justify-end"}`}>
                         <span className="text-xs text-slate-400 ml-[5px] mr-[5px]">
                           {formatDateTime(log.createdAt)}
                         </span>
