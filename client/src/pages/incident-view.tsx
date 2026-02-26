@@ -1133,7 +1133,7 @@ export default function IncidentView() {
         </DialogContent>
       </Dialog>
       {/* Fixed back button */}
-      <div className="fixed top-3 left-3 z-30 md:hidden">
+      <div className="fixed top-3 left-2 z-30 md:hidden">
         <Button
           variant="ghost"
           size="icon"
@@ -1142,7 +1142,7 @@ export default function IncidentView() {
           aria-label="Go back"
           data-testid="button-back"
         >
-          <ArrowLeft className="w-7 h-7 stroke-[2.5]" />
+          <ArrowLeft className="w-5 h-5 stroke-[3]" />
         </Button>
       </div>
       {/* Mobile drawer overlay */}
@@ -2466,7 +2466,7 @@ export default function IncidentView() {
                     <>
                       <div className={`px-[10px] md:px-4 rounded-xl transition-all duration-500 mt-[10px] mb-[10px] pt-[8px] pb-[8px] min-w-0 max-w-full overflow-hidden ${
                         log.isAi 
-                          ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed" 
+                          ? "bg-transparent text-slate-700 text-[16px] md:text-[15px] leading-7 md:leading-relaxed pl-[20px]" 
                           : "bg-[var(--color-user-bubble)] text-slate-600 text-sm leading-relaxed font-normal border border-[var(--color-user-bubble-border)] shadow-sm whitespace-pre-wrap break-words max-w-full"
                       }`}>
                         {log.isAi ? (
@@ -2505,7 +2505,7 @@ export default function IncidentView() {
                           </>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 pt-[0px] pb-[0px] justify-end mt-[0px] mb-[0px] min-w-0 flex-wrap">
+                      <div className={`flex items-center gap-2 pt-[0px] pb-[0px] mt-[0px] mb-[0px] min-w-0 flex-wrap ${log.isAi ? "justify-start ml-[20px]" : "justify-end"}`}>
                         <span className="text-xs text-slate-400 ml-[5px] mr-[5px]">
                           {formatDateTime(log.createdAt)}
                         </span>
