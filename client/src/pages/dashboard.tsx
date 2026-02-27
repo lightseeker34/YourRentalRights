@@ -74,7 +74,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
     queryKey: [`/api/incidents/${incident.id}/logs`],
   });
 
-  // Simple note entry mutation (for backwards compatibility)
+  // Simple note entry mutation
   const addEntryMutation = useMutation({
     mutationFn: async (content: string) => {
       const res = await apiRequest("POST", `/api/incidents/${incident.id}/logs`, {
@@ -124,7 +124,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
       const now = new Date();
       const typeLabel = type === 'call' ? 'Call' : type === 'text' ? 'Text' : type === 'email' ? 'Email' : 'Note';
       
-      // First create the log entry
       const logRes = await apiRequest("POST", `/api/incidents/${incident.id}/logs`, {
         incidentId: incident.id,
         type,
@@ -135,7 +134,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
       });
       const logData = await logRes.json();
       
-      // Upload all photos with category reference and link to parent log
       for (const photo of photos) {
         const formData = new FormData();
         formData.append("file", photo);
@@ -189,7 +187,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
     },
   });
 
-  // Upload photo mutation
   const uploadPhotoMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
@@ -234,7 +231,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
     },
   });
 
-  // Upload document mutation
   const uploadDocMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
@@ -394,12 +390,10 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
     e.target.value = "";
   };
 
-  // Show all user-created entries (not AI responses, not photo attachments without title, not documents)
   const entryLogs = logs?.filter(l => l.type !== 'document' && (l.type !== 'photo' || l.title)).sort((a, b) => {
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   }) || [];
 
-  // Group consecutive chat messages, logs break the groups
   type TimelineItem = { type: 'single'; log: IncidentLog } | { type: 'chat_group'; id: string; chats: IncidentLog[] };
   
   const groupedEntries = (): TimelineItem[] => {
@@ -411,7 +405,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
       if (log.type === 'chat') {
         currentChatGroup.push(log);
       } else {
-        // Non-chat log breaks the group
         if (currentChatGroup.length > 0) {
           items.push({ type: 'chat_group', id: `chat-group-${incident.id}-${chatGroupIndex}`, chats: currentChatGroup });
           chatGroupIndex++;
@@ -421,7 +414,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
       }
     }
     
-    // Don't forget the last chat group
     if (currentChatGroup.length > 0) {
       items.push({ type: 'chat_group', id: `chat-group-${incident.id}-${chatGroupIndex}`, chats: currentChatGroup });
     }
@@ -441,7 +433,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
     });
   };
 
-  // Get icon for entry type
   const getEntryIcon = (type: string) => {
     switch (type) {
       case 'call': return <Phone className="w-3 h-3 text-blue-500" />;
@@ -456,7 +447,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
 
   return (
     <div className="flex-shrink-0 w-full sm:w-72" data-testid={`incident-card-${incident.id}`}>
-      {/* Master Bubble - shows status */}
       <div className="relative group/master">
         <Link 
           href={`/dashboard/incident/${incident.id}`}
@@ -486,7 +476,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
           </div>
         </Link>
       </div>
-      {/* Edit Incident Dialog */}
       <Dialog open={editIncidentOpen} onOpenChange={setEditIncidentOpen}>
         <DialogContent>
           <DialogHeader>
@@ -516,7 +505,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
           </form>
         </DialogContent>
       </Dialog>
-      {/* Sub-entries - grouped with chat collapsing */}
       {groupedEntries().length > 0 && (
         <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-2 space-y-2">
           {groupedEntries().map((item) => {
@@ -527,7 +515,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
               
               return (
                 <div key={item.id}>
-                  {/* Collapsed view - show first chat with expand indicator */}
                   {!isExpanded && (
                     <div 
                       className="bg-slate-50 border border-slate-200 rounded-lg p-2 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -573,7 +560,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                       </div>
                     </div>
                   )}
-                  {/* Expanded view - show all chats with collapse header */}
                   {isExpanded && (
                     <div className="space-y-1">
                       <button 
@@ -636,7 +622,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
               );
             }
             
-            // Single log entry (non-chat)
             const log = item.log;
             return (
               <div key={log.id} className="relative group/entry">
@@ -718,7 +703,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
           })}
         </div>
       )}
-      {/* Add Entry Button - at bottom of timeline */}
       <div className={`${groupedEntries().length > 0 ? 'ml-4 border-l-2 border-slate-200 pl-3' : 'ml-4 pl-3'} mt-2`}>
         <Dialog open={open} onOpenChange={(val) => {
           setOpen(val);
@@ -759,7 +743,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 <TabsTrigger value="photo" className="text-xs" data-testid="tab-photo" disabled={!!editingLog && activeTab !== 'photo'}>Photo</TabsTrigger>
               </TabsList>
               
-              {/* Note Tab */}
               <TabsContent value="note" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Note: Title</Label>
@@ -790,7 +773,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 </Button>
               </TabsContent>
               
-              {/* Call Tab */}
               <TabsContent value="call" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Call: Title</Label>
@@ -852,7 +834,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 </Button>
               </TabsContent>
               
-              {/* Text Tab */}
               <TabsContent value="text" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Text: Title</Label>
@@ -914,7 +895,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 </Button>
               </TabsContent>
               
-              {/* Email Tab */}
               <TabsContent value="email" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Email: Title</Label>
@@ -976,7 +956,6 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 </Button>
               </TabsContent>
               
-              {/* Photo Tab */}
               <TabsContent value="photo" className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Photo: Title</Label>
@@ -1048,7 +1027,6 @@ export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [incidentPhotos, setIncidentPhotos] = useState<File[]>([]);
@@ -1079,6 +1057,7 @@ export default function Dashboard() {
   
   // Eagerly prefetch the first few incidents when dashboard loads
   useEffect(() => {
+
     if (sortedIncidents && sortedIncidents.length > 0) {
       // Prefetch up to 3 incidents immediately for instant navigation
       const idsToPrefetch = sortedIncidents.slice(0, 3).map(i => i.id);
@@ -1262,18 +1241,131 @@ export default function Dashboard() {
     { href: "/forum", label: "Community", icon: MessageSquare },
   ];
 
+  const newIncidentDialogContent = (
+    <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[45px] pb-[45px]">
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Input 
+            placeholder="Log Title" 
+            value={title} 
+            onChange={e => setTitle(e.target.value)} 
+            required 
+            className="mt-[6px] mb-[6px] placeholder:text-slate-400"
+            data-testid="input-log-title"
+          />
+        </div>
+        <div className="space-y-2">
+          <Textarea 
+            placeholder="Briefly describe what happened..." 
+            value={desc} 
+            onChange={e => setDesc(e.target.value)} 
+            required 
+            className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
+            data-testid="input-log-description"
+          />
+        </div>
+        <div className="space-y-2">
+          {incidentPhotos.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {incidentPhotos.map((file, idx) => (
+                <div key={idx} className="relative group">
+                  {file.type.startsWith('image/') ? (
+                    <img src={URL.createObjectURL(file)} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" data-testid={`img-incident-photo-${idx}`} />
+                  ) : (
+                    <div className="w-12 h-12 flex items-center justify-center rounded border border-slate-200 bg-slate-50">
+                      <Paperclip className="w-4 h-4 text-slate-500" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    data-testid={`btn-remove-incident-photo-${idx}`}
+                    onClick={() => setIncidentPhotos(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <input 
+              type="file" 
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              multiple
+              data-testid="input-incident-photos"
+              onChange={(e) => {
+                setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
+                e.target.value = '';
+              }}
+              className="hidden"
+              ref={(el) => { if (el) (el as any)._newLogFileInput = true; }}
+              id="new-log-file-input"
+            />
+            <input 
+              type="file" 
+              accept="image/*,.pdf,.doc,.docx,.txt"
+              multiple
+              onChange={(e) => {
+                setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
+                e.target.value = '';
+              }}
+              className="hidden"
+              id="new-log-folder-input"
+              {...({ webkitdirectory: "", directory: "" } as any)}
+            />
+            <Button 
+              variant="outline" 
+              size="sm"
+              type="button"
+              onClick={() => document.getElementById('new-log-file-input')?.click()}
+              className="w-full justify-start"
+              data-testid="button-new-log-upload-file"
+            >
+              <Paperclip className="w-4 h-4 mr-2" />
+              Upload File
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              type="button"
+              onClick={() => document.getElementById('new-log-folder-input')?.click()}
+              className="w-full justify-start"
+              data-testid="button-new-log-upload-folder"
+            >
+              <FolderUp className="w-4 h-4 mr-2" />
+              Upload Folder
+            </Button>
+          </div>
+        </div>
+        <Button 
+          onClick={() => handleSubmit()}
+          className="w-full" 
+          disabled={createMutation.isPending}
+          data-testid="btn-create-log"
+        >
+          Create Log
+        </Button>
+      </div>
+    </DialogContent>
+  );
+
   return (
-    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl h-[calc(100dvh-64px)] sm:h-auto sm:min-h-[calc(100vh-64px)] flex flex-col overflow-hidden sm:overflow-visible">
-      {/* Header with Add New Log button on right */}
-      <div className="shrink-0 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 sm:mb-8 px-2 sm:px-[10px] z-10 bg-slate-50/80 backdrop-blur-sm sm:bg-transparent">
-        <div className="flex items-center gap-3">
+    <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-8 max-w-6xl h-[100dvh] sm:h-auto sm:min-h-[calc(100vh-64px)] flex flex-col overflow-hidden sm:overflow-visible bg-slate-50 sm:bg-transparent">
+      {/* Mobile Header (Locked) */}
+      <div className="shrink-0 flex flex-col gap-4 pt-4 pb-2 px-4 bg-slate-50 z-10 sm:hidden">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="font-bold text-slate-900 text-[25px]">Welcome, {user?.fullName || user?.username}</h1>
+            <p className="text-slate-600 text-[15px]">Track and manage maintenance</p>
+          </div>
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-slate-900 md:hidden">
+              <Button variant="ghost" size="icon" className="text-slate-900 -mr-2">
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
               <SheetTitle className="text-left font-bold text-slate-900 mt-4 mb-2">Menu</SheetTitle>
               <SheetDescription className="text-left mb-6 text-slate-500">
                 Navigate our services and resources.
@@ -1361,127 +1453,37 @@ export default function Dashboard() {
               </nav>
             </SheetContent>
           </Sheet>
-          <div>
-            <h1 className="sm:text-3xl font-bold text-slate-900 text-[25px]">Welcome, {user?.fullName || user?.username}</h1>
-            <p className="sm:text-base text-slate-600 text-[15px]">Track and manage maintenance and interactions</p>
-          </div>
         </div>
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-slate-900 hover:bg-slate-800 text-center font-normal px-6 w-full sm:w-auto shadow-sm" 
+              className="bg-slate-900 hover:bg-slate-800 text-center font-normal w-full shadow-sm" 
               data-testid="add-new-log-button"
             >
               {incidents && incidents.length > 0 ? 'Add New Incident' : 'Create First Incident'}
             </Button>
           </DialogTrigger>
-          <DialogContent className="w-[90%] rounded-xl sm:max-w-[425px] fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] transition-transform duration-200 pt-[45px] pb-[45px]">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Input 
-                  placeholder="Log Title" 
-                  value={title} 
-                  onChange={e => setTitle(e.target.value)} 
-                  required 
-                  className="mt-[6px] mb-[6px] placeholder:text-slate-400"
-                  data-testid="input-log-title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Textarea 
-                  placeholder="Briefly describe what happened..." 
-                  value={desc} 
-                  onChange={e => setDesc(e.target.value)} 
-                  required 
-                  className="min-h-[140px] mt-[5px] mb-[5px] placeholder:text-slate-400"
-                  data-testid="input-log-description"
-                />
-              </div>
-              <div className="space-y-2">
-                {incidentPhotos.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {incidentPhotos.map((file, idx) => (
-                      <div key={idx} className="relative group">
-                        {file.type.startsWith('image/') ? (
-                          <img src={URL.createObjectURL(file)} alt="" className="w-12 h-12 object-cover rounded border border-slate-200" data-testid={`img-incident-photo-${idx}`} />
-                        ) : (
-                          <div className="w-12 h-12 flex items-center justify-center rounded border border-slate-200 bg-slate-50">
-                            <Paperclip className="w-4 h-4 text-slate-500" />
-                          </div>
-                        )}
-                        <button
-                          type="button"
-                          data-testid={`btn-remove-incident-photo-${idx}`}
-                          onClick={() => setIncidentPhotos(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex flex-col gap-2">
-                  <input 
-                    type="file" 
-                    accept="image/*,.pdf,.doc,.docx,.txt"
-                    multiple
-                    data-testid="input-incident-photos"
-                    onChange={(e) => {
-                      setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                    ref={(el) => { if (el) (el as any)._newLogFileInput = true; }}
-                    id="new-log-file-input"
-                  />
-                  <input 
-                    type="file" 
-                    accept="image/*,.pdf,.doc,.docx,.txt"
-                    multiple
-                    onChange={(e) => {
-                      setIncidentPhotos(prev => [...prev, ...Array.from(e.target.files || [])]);
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                    id="new-log-folder-input"
-                    {...({ webkitdirectory: "", directory: "" } as any)}
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    type="button"
-                    onClick={() => document.getElementById('new-log-file-input')?.click()}
-                    className="w-full justify-start"
-                    data-testid="button-new-log-upload-file"
-                  >
-                    <Paperclip className="w-4 h-4 mr-2" />
-                    Upload File
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    type="button"
-                    onClick={() => document.getElementById('new-log-folder-input')?.click()}
-                    className="w-full justify-start"
-                    data-testid="button-new-log-upload-folder"
-                  >
-                    <FolderUp className="w-4 h-4 mr-2" />
-                    Upload Folder
-                  </Button>
-                </div>
-              </div>
-              <Button 
-                onClick={() => handleSubmit()}
-                className="w-full" 
-                disabled={createMutation.isPending}
-                data-testid="btn-create-log"
-              >
-                Create Log
-              </Button>
-            </div>
-          </DialogContent>
+          {newIncidentDialogContent}
+        </Dialog>
+      </div>
+
+      {/* Desktop Header (Hidden on Mobile) */}
+      <div className="hidden sm:flex shrink-0 flex-row justify-between items-center gap-4 mb-8 px-[10px]">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Welcome, {user?.fullName || user?.username}</h1>
+          <p className="text-base text-slate-600">Track and manage maintenance and interactions</p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button 
+              className="bg-slate-900 hover:bg-slate-800 text-center font-normal px-6 w-auto shadow-sm" 
+              data-testid="add-new-log-button-desktop"
+            >
+              {incidents && incidents.length > 0 ? 'Add New Incident' : 'Create First Incident'}
+            </Button>
+          </DialogTrigger>
+          {newIncidentDialogContent}
         </Dialog>
       </div>
       {isLoading ? (
