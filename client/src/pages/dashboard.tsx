@@ -1353,7 +1353,7 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-8 max-w-6xl h-[100dvh] sm:h-auto sm:min-h-[calc(100vh-64px)] flex flex-col overflow-hidden sm:overflow-visible bg-slate-50 sm:bg-transparent">
       {/* Mobile Header (Locked) */}
-      <div className="shrink-0 flex flex-col gap-4 pt-4 pb-2 px-4 bg-slate-50 z-10 sm:hidden">
+      <div className="shrink-0 flex flex-col gap-4 pt-6 pb-4 px-6 bg-slate-50/80 backdrop-blur-sm z-10 sm:hidden border-b border-slate-200/50">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="font-bold text-slate-900 text-[25px]">Welcome, {user?.fullName || user?.username}</h1>
@@ -1458,7 +1458,7 @@ export default function Dashboard() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-slate-900 hover:bg-slate-800 text-center font-normal w-full shadow-sm" 
+              className="bg-slate-900 hover:bg-slate-800 text-center font-normal w-auto self-start shadow-sm px-6" 
               data-testid="add-new-log-button"
             >
               {incidents && incidents.length > 0 ? 'Add New Incident' : 'Create First Incident'}
