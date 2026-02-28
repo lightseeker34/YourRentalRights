@@ -517,7 +517,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 <div key={item.id}>
                   {!isExpanded && (
                     <div 
-                      className="bg-slate-50 border border-slate-200 rounded-lg p-2 hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer"
                       onClick={() => toggleChatGroup(item.id)}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
@@ -574,7 +574,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                       </button>
                       {item.chats.map((log) => (
                         <Link key={log.id} href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                          <div className={`border rounded-lg p-2 transition-colors cursor-pointer pl-[10px] pr-[10px] ${
+                          <div className={`border rounded-lg p-2.5 shadow-sm transition-colors cursor-pointer pl-[10px] pr-[10px] ${
                             log.isAi 
                               ? "bg-slate-100 border-slate-300 hover:bg-slate-200" 
                               : "bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90"
@@ -626,7 +626,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
             return (
               <div key={log.id} className="relative group/entry">
                 <Link href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 hover:bg-slate-100 transition-colors cursor-pointer pl-[10px] pr-[10px]">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer pl-[10px] pr-[10px]">
                     <div className="flex items-center justify-between gap-1.5 mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {getEntryIcon(log.type)}
