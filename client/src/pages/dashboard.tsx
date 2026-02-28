@@ -230,7 +230,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
         </DialogContent>
       </Dialog>
       {groupedEntries().length > 0 && (
-        <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-2 space-y-2">
+        <div className="w-[92%] ml-0 border-l-2 border-slate-200 pl-3 mt-2 space-y-2 mx-auto">
           {groupedEntries().map((item) => {
             if (item.type === 'chat_group') {
               const isExpanded = expandedChatGroups.has(item.id);
@@ -241,7 +241,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 <div key={item.id}>
                   {!isExpanded && (
                     <div 
-                      className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer max-w-[88%] ml-auto"
                       onClick={() => toggleChatGroup(item.id)}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
@@ -298,7 +298,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                       </button>
                       {item.chats.map((log) => (
                         <Link key={log.id} href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                          <div className={`border rounded-lg p-2.5 shadow-sm transition-colors cursor-pointer ${
+                          <div className={`border rounded-lg p-2 shadow-sm transition-colors cursor-pointer max-w-[88%] ml-auto ${
                             log.isAi 
                               ? "bg-slate-100 border-slate-300 hover:bg-slate-200" 
                               : "bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90"
@@ -350,7 +350,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
             return (
               <div key={log.id} className="relative group/entry">
                 <Link href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer max-w-[88%] ml-auto">
                     <div className="flex items-center justify-between gap-1.5 mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {getEntryIcon(log.type)}
