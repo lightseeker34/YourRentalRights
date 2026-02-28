@@ -231,7 +231,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
         </DialogContent>
       </Dialog>
       {groupedEntries().length > 0 && (
-        <div className="w-[88%] sm:w-[14.5rem] ml-auto border-l-2 border-slate-200 pl-2 mt-2 space-y-2">
+        <div className="w-[92%] sm:w-[14.5rem] ml-auto border-l-2 border-slate-200 pl-2 mt-2 space-y-2">
           {groupedEntries().map((item) => {
             if (item.type === 'chat_group') {
               const isExpanded = expandedChatGroups.has(item.id);
@@ -242,7 +242,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 <div key={item.id}>
                   {!isExpanded && (
                     <div 
-                      className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer w-[92%] sm:w-[14.25rem] ml-auto"
+                      className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer w-full"
                       onClick={() => toggleChatGroup(item.id)}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
@@ -299,7 +299,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                       </button>
                       {item.chats.map((log) => (
                         <Link key={log.id} href={`/dashboard/incident/${incident.id}?log=${log.id}`} className="block w-full">
-                          <div className={`border rounded-lg p-2 shadow-sm transition-colors cursor-pointer w-[92%] sm:w-[14.25rem] ml-auto ${
+                          <div className={`border rounded-lg p-2 shadow-sm transition-colors cursor-pointer w-full ${
                             log.isAi 
                               ? "bg-slate-100 border-slate-300 hover:bg-slate-200" 
                               : "bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90"
@@ -351,7 +351,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
             return (
               <div key={log.id} className="relative group/entry">
                 <Link href={`/dashboard/incident/${incident.id}?log=${log.id}`} className="block w-full">
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer w-[92%] sm:w-[14.25rem] ml-auto">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer w-full">
                     <div className="flex items-center justify-between gap-1.5 mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {getEntryIcon(log.type)}
