@@ -925,20 +925,22 @@ export default function Dashboard() {
             
             {/* iOS-style dot indicators - Fixed at bottom of viewport */}
             {sortedIncidents && sortedIncidents.length > 1 && (
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 py-2 pointer-events-none">
-                {sortedIncidents.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => scrollToIndex(index)}
-                    className={`w-2 h-2 rounded-full transition-all duration-200 shadow-sm pointer-events-auto ${
-                      index === currentIndex 
-                        ? 'bg-slate-800 w-4' 
-                        : 'bg-slate-300/80 hover:bg-slate-400'
-                    }`}
-                    aria-label={`Go to incident ${index + 1}`}
-                    data-testid={`carousel-dot-${index}`}
-                  />
-                ))}
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="pointer-events-auto inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/90 border border-slate-200 shadow-sm backdrop-blur-sm">
+                  {sortedIncidents.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => scrollToIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                        index === currentIndex 
+                          ? 'bg-slate-800 w-4' 
+                          : 'bg-slate-300/80 hover:bg-slate-400'
+                      }`}
+                      aria-label={`Go to incident ${index + 1}`}
+                      data-testid={`carousel-dot-${index}`}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
