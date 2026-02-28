@@ -926,7 +926,7 @@ export default function Dashboard() {
             {/* iOS-style dot indicators - Fixed at bottom of viewport */}
             {sortedIncidents && sortedIncidents.length > 1 && (
               <div className="absolute bottom-4 left-0 right-0 flex justify-center pointer-events-none">
-                <div className="pointer-events-auto inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-white/90 border border-slate-200 shadow-sm backdrop-blur-sm">
+                <div className="pointer-events-auto inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-slate-50/95 backdrop-blur-sm">
                   {sortedIncidents.map((_, index) => (
                     <button
                       key={index}
