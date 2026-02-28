@@ -185,8 +185,15 @@ export default function IncidentView() {
     // Only scroll if we have a target log ID and logs are loaded
     if (targetLogId && logs && logs.length > 0 && scrolledToLogId.current !== targetLogId) {
       const logIdNum = parseInt(targetLogId);
+      const targetLog = logs.find((l) => l.id === logIdNum);
       setHighlightedLogId(logIdNum);
       scrolledToLogId.current = targetLogId;
+
+      // On mobile, open timeline drawer for non-chat logs so the incident timeline is visible.
+      if (typeof window !== 'undefined' && window.innerWidth < 768 && targetLog && targetLog.type !== 'chat') {
+        setMobileDrawerOpen(true);
+        setDrawerOpenedByTour(false);
+      }
       
       // Small delay to ensure DOM is ready
       setTimeout(() => {
@@ -198,11 +205,15 @@ export default function IncidentView() {
         if (chatElement) {
           chatElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
-        // Also scroll timeline if element exists
+        // Also scroll timeline if element exists (or appears after drawer opens)
+        const scrollTimeline = () => {
+          const el = document.getElementById(`log-entry-${targetLogId}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        };
         if (timelineElement) {
-          setTimeout(() => {
-            timelineElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
-          }, 150);
+          setTimeout(scrollTimeline, 150);
+        } else {
+          setTimeout(scrollTimeline, 500);
         }
         
         // Clear highlight after 3 seconds
