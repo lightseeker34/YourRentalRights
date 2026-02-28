@@ -341,7 +341,7 @@ export function SidebarContent({
                       <div key={item.id}>
                         {!isExpanded && (
                           <Card
-                            className="p-2 cursor-pointer hover:bg-slate-50 bg-slate-50 border-slate-200"
+                            className="p-2.5 shadow-sm cursor-pointer hover:bg-slate-50 bg-slate-50 border-slate-200"
                             onClick={() => onToggleChatGroup(item.id)}
                           >
                             <div className="flex items-center justify-between gap-1.5 mb-1">

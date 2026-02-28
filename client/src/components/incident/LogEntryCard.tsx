@@ -64,7 +64,7 @@ export function LogEntryCard({
     <Card
       id={`log-entry-${log.id}`}
       key={log.id}
-      className={`p-1.5 group transition-all duration-500 cursor-pointer ${
+      className={`p-2.5 group transition-all duration-500 cursor-pointer shadow-sm ${
         isUserChat
           ? 'bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90'
           : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
