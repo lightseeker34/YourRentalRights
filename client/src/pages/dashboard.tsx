@@ -454,7 +454,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
           onMouseEnter={() => onPrefetch?.(incident.id)}
           onFocus={() => onPrefetch?.(incident.id)}
         >
-          <div className="bg-white border border-slate-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer max-w-[92%] sm:max-w-[15.5rem]">
+          <div className="bg-white border border-slate-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer max-w-[92%] sm:max-w-[15.5rem] mx-auto sm:mx-0">
             <div className="flex justify-between items-start mb-1">
               <h3 className="font-semibold text-slate-900 text-sm line-clamp-1">{incident.title}</h3>
               <div className="flex items-center gap-1 shrink-0">
@@ -506,7 +506,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
         </DialogContent>
       </Dialog>
       {groupedEntries().length > 0 && (
-        <div className="ml-4 border-l-2 border-slate-200 pl-3 mt-2 space-y-2">
+        <div className="w-[92%] sm:w-auto ml-0 sm:ml-4 border-l-2 border-slate-200 pl-3 mt-2 space-y-2 mx-auto sm:mx-0">
           {groupedEntries().map((item) => {
             if (item.type === 'chat_group') {
               const isExpanded = expandedChatGroups.has(item.id);
@@ -703,7 +703,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
           })}
         </div>
       )}
-      <div className={`${groupedEntries().length > 0 ? 'ml-4 border-l-2 border-slate-200 pl-3' : 'ml-4 pl-3'} mt-2`}>
+      <div className={`${groupedEntries().length > 0 ? 'w-[92%] sm:w-auto ml-0 sm:ml-4 border-l-2 border-slate-200 pl-3' : 'w-[92%] sm:w-auto ml-0 sm:ml-4 pl-3'} mt-2 mx-auto sm:mx-0`}>
         <Dialog open={open} onOpenChange={(val) => {
           setOpen(val);
           if (!val) {
