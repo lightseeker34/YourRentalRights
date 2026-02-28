@@ -421,7 +421,11 @@ export function SidebarContent({
                   const hasAttachments = attachedPhotos.length > 0 || attachedDocs.length > 0;
 
                   return (
-                    <div key={log.id}>
+                    <div
+                      key={log.id}
+                      id={`log-entry-${log.id}`}
+                      className={`transition-all duration-500 ${highlightedLogId === log.id ? 'ring-1 ring-blue-500 rounded-md bg-blue-50/20' : ''}`}
+                    >
                       <LogEntryCard
                         log={log}
                         icon={icon}
