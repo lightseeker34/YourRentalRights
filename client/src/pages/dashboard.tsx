@@ -173,12 +173,13 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
     <div className="flex-shrink-0 w-full sm:w-64 pr-4" data-testid={`incident-card-${incident.id}`}>
       <div className="relative group/master">
         <Link 
+          className="block w-full"
           href={`/dashboard/incident/${incident.id}`}
           onPointerDown={() => onPrefetch?.(incident.id)}
           onMouseEnter={() => onPrefetch?.(incident.id)}
           onFocus={() => onPrefetch?.(incident.id)}
         >
-          <div className="bg-white border border-slate-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer max-w-[92%] sm:max-w-[15.5rem] mx-auto">
+          <div className="bg-white border border-slate-200 rounded-lg p-3 sm:p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer w-[92%] sm:w-[15.5rem] mx-auto">
             <div className="flex justify-between items-start mb-1">
               <h3 className="font-semibold text-slate-900 text-sm line-clamp-1">{incident.title}</h3>
               <div className="flex items-center gap-1 shrink-0">
@@ -230,7 +231,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
         </DialogContent>
       </Dialog>
       {groupedEntries().length > 0 && (
-        <div className="ml-3 border-l-2 border-slate-200 pl-2 mt-2 space-y-2">
+        <div className="w-[92%] sm:w-[15.5rem] mx-auto border-l-2 border-slate-200 pl-2 mt-2 space-y-2">
           {groupedEntries().map((item) => {
             if (item.type === 'chat_group') {
               const isExpanded = expandedChatGroups.has(item.id);
@@ -241,7 +242,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 <div key={item.id}>
                   {!isExpanded && (
                     <div 
-                      className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer max-w-[86%] sm:max-w-[14rem] ml-auto"
+                      className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer w-[86%] sm:w-[14rem] ml-auto"
                       onClick={() => toggleChatGroup(item.id)}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
@@ -297,8 +298,8 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                         <ChevronDown className="w-3 h-3" />
                       </button>
                       {item.chats.map((log) => (
-                        <Link key={log.id} href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                          <div className={`border rounded-lg p-2 shadow-sm transition-colors cursor-pointer max-w-[86%] sm:max-w-[14rem] ml-auto ${
+                        <Link key={log.id} href={`/dashboard/incident/${incident.id}?log=${log.id}`} className="block w-full">
+                          <div className={`border rounded-lg p-2 shadow-sm transition-colors cursor-pointer w-[86%] sm:w-[14rem] ml-auto ${
                             log.isAi 
                               ? "bg-slate-100 border-slate-300 hover:bg-slate-200" 
                               : "bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90"
@@ -349,8 +350,8 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
             const log = item.log;
             return (
               <div key={log.id} className="relative group/entry">
-                <Link href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer max-w-[86%] sm:max-w-[14rem] ml-auto">
+                <Link href={`/dashboard/incident/${incident.id}?log=${log.id}`} className="block w-full">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer w-[86%] sm:w-[14rem] ml-auto">
                     <div className="flex items-center justify-between gap-1.5 mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {getEntryIcon(log.type)}
