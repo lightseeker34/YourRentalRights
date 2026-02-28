@@ -446,7 +446,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
   };
 
   return (
-    <div className="flex-shrink-0 w-full sm:w-72" data-testid={`incident-card-${incident.id}`}>
+    <div className="flex-shrink-0 w-full sm:w-64" data-testid={`incident-card-${incident.id}`}>
       <div className="relative group/master">
         <Link 
           href={`/dashboard/incident/${incident.id}`}
@@ -454,7 +454,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
           onMouseEnter={() => onPrefetch?.(incident.id)}
           onFocus={() => onPrefetch?.(incident.id)}
         >
-          <div className="bg-white border border-slate-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer">
+          <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer sm:max-w-[15.5rem]">
             <div className="flex justify-between items-start mb-1">
               <h3 className="font-semibold text-slate-900 text-sm line-clamp-1">{incident.title}</h3>
               <div className="flex items-center gap-1 shrink-0">
@@ -517,7 +517,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 <div key={item.id}>
                   {!isExpanded && (
                     <div 
-                      className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer"
+                      className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer sm:max-w-[15.5rem]"
                       onClick={() => toggleChatGroup(item.id)}
                     >
                       <div className="flex items-center justify-between gap-1.5 mb-1">
@@ -574,7 +574,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                       </button>
                       {item.chats.map((log) => (
                         <Link key={log.id} href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                          <div className={`border rounded-lg p-2.5 shadow-sm transition-colors cursor-pointer pl-[10px] pr-[10px] ${
+                          <div className={`border rounded-lg p-2.5 shadow-sm transition-colors cursor-pointer pl-[10px] pr-[10px] sm:max-w-[15.5rem] ${
                             log.isAi 
                               ? "bg-slate-100 border-slate-300 hover:bg-slate-200" 
                               : "bg-[var(--color-user-bubble)] border-[var(--color-user-bubble-border)] hover:bg-[var(--color-user-bubble)]/90"
@@ -626,7 +626,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
             return (
               <div key={log.id} className="relative group/entry">
                 <Link href={`/dashboard/incident/${incident.id}?log=${log.id}`}>
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer pl-[10px] pr-[10px]">
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 shadow-sm hover:bg-slate-100 transition-colors cursor-pointer pl-[10px] pr-[10px] sm:max-w-[15.5rem]">
                     <div className="flex items-center justify-between gap-1.5 mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {getEntryIcon(log.type)}
@@ -670,7 +670,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-blue-500 hover:text-blue-700"
+                      className="h-5 w-5 text-blue-500 hover:text-blue-700"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -687,7 +687,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-slate-500 hover:text-slate-700"
+                      className="h-5 w-5 text-slate-500 hover:text-slate-700"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -724,8 +724,8 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
                 setActiveTab("note");
               }}
             >
-              <div className="w-5 h-5 rounded-full border border-dashed border-slate-300 flex items-center justify-center hover:border-slate-400">
-                <Plus className="w-3 h-3" />
+              <div className="w-4 h-4 rounded-full border border-dashed border-slate-300 flex items-center justify-center hover:border-slate-400">
+                <Plus className="w-2.5 h-2.5" />
               </div>
               <span>Add entry</span>
             </button>
