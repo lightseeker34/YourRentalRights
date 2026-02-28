@@ -231,7 +231,8 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
         </DialogContent>
       </Dialog>
       {groupedEntries().length > 0 && (
-        <div className="w-[94%] sm:w-[15.5rem] mx-auto border-l-2 border-slate-200 pl-2 mt-2 space-y-2">
+        <div className="relative w-[94%] sm:w-[15.5rem] mx-auto pl-2 mt-2 space-y-2">
+          <div aria-hidden="true" className="absolute top-0 bottom-0 -left-1 border-l-2 border-slate-200" />
           {groupedEntries().map((item) => {
             if (item.type === 'chat_group') {
               const isExpanded = expandedChatGroups.has(item.id);
