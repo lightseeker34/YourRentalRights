@@ -2185,7 +2185,7 @@ export default function IncidentView() {
               </div>
             )}
             {chatLogs.map((log) => (
-              <div id={`chat-entry-${log.id}`} key={log.id} className={`flex w-full max-w-full min-w-0 gap-2 md:gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
+              <div id={`chat-entry-${log.id}`} key={log.id} className={`scroll-mb-24 md:scroll-mb-16 flex w-full max-w-full min-w-0 gap-2 md:gap-4 transition-all duration-500 ${!log.isAi ? "flex-row-reverse" : ""}`}>
                 <div className={`flex flex-col min-w-0 w-full ${log.isAi ? 'max-w-full md:max-w-[92%] pr-0 md:pr-1' : 'max-w-[calc(88%-15px)] md:max-w-[calc(85%-15px)] ml-auto items-end mr-0 md:mr-0'}`}>
                   {editLogId === log.id && (
                     <>
