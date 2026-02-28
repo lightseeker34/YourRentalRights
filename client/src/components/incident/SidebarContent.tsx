@@ -378,7 +378,7 @@ export function SidebarContent({
                               <ChevronDown className="w-4 h-4" />
                             </button>
                             {item.chats.map((log) => (
-                              <div key={log.id} id={`log-entry-${log.id}`} className={`transition-all duration-500 ${highlightedLogId === log.id ? 'ring-1 ring-blue-500 rounded-md bg-blue-50/20' : ''}`}>
+                              <div key={log.id} id={`log-entry-${log.id}`} className="transition-all duration-500">
                                 <LogEntryCard
                                   log={log}
                                   icon={MessageSquare}
@@ -424,7 +424,7 @@ export function SidebarContent({
                     <div
                       key={log.id}
                       id={`log-entry-${log.id}`}
-                      className={`transition-all duration-500 ${highlightedLogId === log.id ? 'ring-1 ring-blue-500 rounded-md bg-blue-50/20' : ''}`}
+                      className="transition-all duration-500"
                     >
                       <LogEntryCard
                         log={log}
