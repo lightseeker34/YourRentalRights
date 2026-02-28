@@ -506,7 +506,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
         </DialogContent>
       </Dialog>
       {groupedEntries().length > 0 && (
-        <div className="w-[92%] sm:w-auto ml-0 sm:ml-4 border-l-2 border-slate-200 pl-3 mt-2 space-y-2 mx-auto sm:mx-0">
+        <div className="w-[92%] sm:w-auto ml-4 sm:ml-4 border-l-2 border-slate-200 pl-3 mt-2 space-y-2 mx-auto sm:mx-0">
           {groupedEntries().map((item) => {
             if (item.type === 'chat_group') {
               const isExpanded = expandedChatGroups.has(item.id);
@@ -703,7 +703,7 @@ function TimelineCard({ incident, onPrefetch }: { incident: Incident; onPrefetch
           })}
         </div>
       )}
-      <div className={`${groupedEntries().length > 0 ? 'w-[92%] sm:w-auto ml-0 sm:ml-4 border-l-2 border-slate-200 pl-3' : 'w-[92%] sm:w-auto ml-0 sm:ml-4 pl-3'} mt-2 mx-auto sm:mx-0`}>
+      <div className={`${groupedEntries().length > 0 ? 'w-[92%] sm:w-auto ml-4 sm:ml-4 border-l-2 border-slate-200 pl-3' : 'w-[92%] sm:w-auto ml-4 sm:ml-4 pl-3'} mt-2 mx-auto sm:mx-0`}>
         <Dialog open={open} onOpenChange={(val) => {
           setOpen(val);
           if (!val) {
