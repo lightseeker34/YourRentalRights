@@ -30,7 +30,7 @@ export default function AuthPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-start p-4 pt-6">
       <div className="mb-8 flex items-center gap-2">
         <div className="bg-slate-900 p-2 rounded-lg">
           <Scale className="w-6 h-6 text-white" />
